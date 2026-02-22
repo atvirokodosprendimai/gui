@@ -74,3 +74,27 @@ func TestSyncOnce_SkipsNetworkWhenContextCanceled(t *testing.T) {
 		t.Fatalf("unexpected outbound requests: got %d, want 0", got)
 	}
 }
+
+func TestHandleCQRSStream_StopsOnAppClose(t *testing.T) {
+	t.Parallel()
+
+	a := New(nil, time.Second, false)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/any/cqrs", nil)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		a.handleCQRSStream(rec, req)
+	}()
+
+	closeCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_ = a.Close(closeCtx)
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("cqrs stream did not stop after app close")
+	}
+}

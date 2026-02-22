@@ -44,6 +44,8 @@ func (a *App) handleCQRSStream(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		select {
+		case <-a.lifecycleCtx.Done():
+			return
 		case <-sse.Context().Done():
 			return
 		case upd := <-watcher:

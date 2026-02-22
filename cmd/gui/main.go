@@ -84,8 +84,8 @@ func main() {
 	case <-ctx.Done():
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_ = srv.Shutdown(shutdownCtx)
 		_ = app.Close(shutdownCtx)
+		_ = srv.Shutdown(shutdownCtx)
 		select {
 		case <-syncDone:
 		case <-shutdownCtx.Done():

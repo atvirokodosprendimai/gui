@@ -16,6 +16,7 @@ type App struct {
 	mu           sync.RWMutex
 	syncMu       sync.Mutex
 	authMu       sync.Mutex
+	closeOnce    sync.Once
 	nodes        map[string]node
 	dashboard    map[string]dnsRecord
 	domainOwners map[string]string
@@ -28,6 +29,8 @@ type App struct {
 	flashBySess  map[string]string
 	loginLimiter map[string]loginState
 	initErr      error
+	lifecycleCtx context.Context
+	lifecycleEnd context.CancelFunc
 }
 
 func New(client *http.Client, syncInterval time.Duration, trustProxy bool, dbs ...*gorm.DB) *App {
@@ -55,6 +58,7 @@ func New(client *http.Client, syncInterval time.Duration, trustProxy bool, dbs .
 		flashBySess:  make(map[string]string),
 		loginLimiter: make(map[string]loginState),
 	}
+	app.lifecycleCtx, app.lifecycleEnd = context.WithCancel(context.Background())
 	if err := app.loadDomainOwners(); err != nil {
 		app.initErr = err
 	}
@@ -66,6 +70,11 @@ func (a *App) InitError() error {
 }
 
 func (a *App) Close(ctx context.Context) error {
+	a.closeOnce.Do(func() {
+		if a.lifecycleEnd != nil {
+			a.lifecycleEnd()
+		}
+	})
 	if a.natsBridge != nil {
 		a.natsBridge.Close(ctx)
 	}
