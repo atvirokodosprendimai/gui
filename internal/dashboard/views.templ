@@ -1,0 +1,212 @@
+package dashboard
+
+import "strings"
+
+templ IndexPage() {
+	<!doctype html>
+	<html lang="en">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>Anycast DNS Cloud Dashboard</title>
+			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@1.0.0-RC.7/bundles/datastar.js"></script>
+			<style>
+				:root {
+					--bg: #eef3f8;
+					--ink: #1f2933;
+					--ink-soft: #52606d;
+					--card: #ffffff;
+					--line: #d9e2ec;
+					--brand: #0f766e;
+					--danger: #b91c1c;
+					--shadow: 0 20px 40px -30px rgba(15, 23, 42, 0.5);
+				}
+				* { box-sizing: border-box; }
+				body {
+					margin: 0;
+					font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+					color: var(--ink);
+					background: radial-gradient(circle at top right, #d7f0eb 0, transparent 45%), linear-gradient(165deg, #f8fafc 0%, var(--bg) 60%, #dce7f2 100%);
+				}
+				.wrap { width: min(1180px, 92vw); margin: 0 auto; padding: 1.5rem 0 2rem; }
+				header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1rem; }
+				h1 { margin: 0; font-size: 1.8rem; letter-spacing: 0.01em; }
+				p { margin: 0.2rem 0 0; color: var(--ink-soft); }
+				.grid { display: grid; gap: 1rem; }
+				.grid-cards { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1rem; }
+				.card, .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+				.card { padding: 0.9rem 1rem; }
+				.card h3 { margin: 0 0 .2rem; color: var(--ink-soft); font-weight: 600; font-size: .88rem; text-transform: uppercase; letter-spacing: .08em; }
+				.card p { margin: 0; font-weight: 700; font-size: 1.8rem; color: var(--brand); }
+				.panel { margin-bottom: 1rem; padding: 0.85rem 1rem 1rem; }
+				.panel h2 { margin: 0 0 .8rem; font-size: 1rem; }
+				.forms { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom: 1rem; }
+				.form-row { display: grid; gap: .5rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+				label { display: block; font-size: .76rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: .06em; }
+				input, select, button { width: 100%; border-radius: 10px; border: 1px solid var(--line); padding: .56rem .65rem; font: inherit; }
+				button { cursor: pointer; border: 0; background: var(--brand); color: #fff; font-weight: 600; }
+				button.secondary { background: #334e68; }
+				button.danger { background: var(--danger); }
+				.toolbar { display: flex; gap: .65rem; margin-bottom: .8rem; }
+				table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+				th, td { border-bottom: 1px solid var(--line); text-align: left; padding: .55rem .35rem; vertical-align: top; }
+				.flash { margin: .3rem 0 .9rem; background: #ecfeff; color: #155e75; border: 1px solid #67e8f9; border-radius: 10px; padding: .55rem .65rem; }
+				@media (max-width: 700px) {
+					header { flex-direction: column; align-items: flex-start; }
+					.form-row { grid-template-columns: 1fr; }
+					table { font-size: .82rem; }
+				}
+			</style>
+		</head>
+		<body>
+			<main class="wrap" data-signals="{filter:'',serverName:'',serverURL:'http://127.0.0.1',serverPort:'8080',serverToken:'',domain:'',recordType:'A',recordIP:'',recordZone:'',recordTTL:'60',recordTarget:'',recordText:'',domainAccount:'',transferDomain:'',transferToAccount:''}">
+				<header>
+					<div>
+						<h1>Anycast DNS Cloud Dashboard</h1>
+						<p>Manage node fleet, park domains, and keep all VPN-connected DNS servers in sync.</p>
+					</div>
+					<div class="toolbar">
+						<button class="secondary" data-on:click="@get('/ui/sync/now?filter=' + encodeURIComponent($filter))">Sync Now</button>
+					</div>
+				</header>
+
+				<div id="flash"></div>
+
+				<section class="panel">
+					<h2>Server Clock (SSE)</h2>
+					<div id="clock">connecting to cqrs stream...</div>
+					<div data-init="@get('/any/cqrs', {openWhenHidden: true, requestCancellation: 'disabled'})"></div>
+				</section>
+
+				<section id="overview" class="grid grid-cards"></section>
+
+				<section class="forms">
+					<article class="panel">
+						<h2>Add Anycast Server</h2>
+						<div class="form-row">
+							<div><label>Name<input data-bind:serverName placeholder="eu-west-1"/></label></div>
+							<div><label>URL / Host<input data-bind:serverURL placeholder="http://10.0.0.3"/></label></div>
+						</div>
+						<div class="form-row">
+							<div><label>Port<input data-bind:serverPort placeholder="8080"/></label></div>
+							<div><label>API Token<input data-bind:serverToken placeholder="token"/></label></div>
+						</div>
+						<button data-on:click="@get('/ui/server/add?name=' + encodeURIComponent($serverName) + '&url=' + encodeURIComponent($serverURL) + '&port=' + encodeURIComponent($serverPort) + '&token=' + encodeURIComponent($serverToken))">Save Server</button>
+					</article>
+
+					<article class="panel">
+						<h2>Park Domain to Anycast DNS</h2>
+						<div class="form-row">
+							<div><label>Domain<input data-bind:domain placeholder="example.com"/></label></div>
+							<div><label>Type<select data-bind:recordType><option>A</option><option>AAAA</option><option>TXT</option><option>CNAME</option><option>MX</option></select></label></div>
+						</div>
+						<div class="form-row">
+							<div><label>IP<input data-bind:recordIP placeholder="198.51.100.42"/></label></div>
+							<div><label>TTL<input data-bind:recordTTL placeholder="60"/></label></div>
+						</div>
+						<div class="form-row">
+							<div><label>Target<input data-bind:recordTarget placeholder="alias.example.net"/></label></div>
+							<div><label>TXT<input data-bind:recordText placeholder="text value"/></label></div>
+						</div>
+						<div class="form-row">
+							<div><label>Zone (optional)<input data-bind:recordZone placeholder="example.com"/></label></div>
+							<div><label>Owner Account<input data-bind:domainAccount placeholder="account-a"/></label></div>
+						</div>
+						<button data-on:click="@get('/ui/domain/park?domain=' + encodeURIComponent($domain) + '&type=' + encodeURIComponent($recordType) + '&ip=' + encodeURIComponent($recordIP) + '&ttl=' + encodeURIComponent($recordTTL) + '&zone=' + encodeURIComponent($recordZone) + '&target=' + encodeURIComponent($recordTarget) + '&text=' + encodeURIComponent($recordText) + '&account=' + encodeURIComponent($domainAccount))">Park Domain</button>
+					</article>
+
+					<article class="panel">
+						<h2>Transfer Parked Domain</h2>
+						<div class="form-row">
+							<div><label>Domain<input data-bind:transferDomain placeholder="example.com"/></label></div>
+							<div><label>Target Account<input data-bind:transferToAccount placeholder="account-b"/></label></div>
+						</div>
+						<button class="secondary" data-on:click="@get('/ui/domain/transfer?domain=' + encodeURIComponent($transferDomain) + '&to_account=' + encodeURIComponent($transferToAccount))">Transfer Domain</button>
+					</article>
+				</section>
+
+				<section class="panel">
+					<h2>Search Records</h2>
+					<input data-bind:filter data-on:input="$filter = $filter.toLowerCase()" placeholder="filter by name, type, value, zone, account"/>
+				</section>
+
+				<section id="servers" class="panel"></section>
+				<section id="records" class="panel"></section>
+			</main>
+		</body>
+	</html>
+}
+
+templ FlashFragment(msg string) {
+	if strings.TrimSpace(msg) == "" {
+		<div id="flash"></div>
+	} else {
+		<div id="flash" class="flash">{ msg }</div>
+	}
+}
+
+templ OverviewFragment(nodeCount int, onlineCount int, recordCount int) {
+	<section id="overview" class="grid grid-cards">
+		<article class="card"><h3>Connected Nodes</h3><p>{ nodeCount }</p></article>
+		<article class="card"><h3>Online Nodes</h3><p>{ onlineCount }</p></article>
+		<article class="card"><h3>Managed DNS Records</h3><p>{ recordCount }</p></article>
+	</section>
+}
+
+templ ServersFragment(nodes []node) {
+	<section id="servers" class="panel">
+		<h2>Anycast Nodes</h2>
+		<table>
+			<thead>
+				<tr><th>Name</th><th>Endpoint</th><th>Status</th><th>Records</th><th>Last Sync</th><th></th></tr>
+			</thead>
+			<tbody>
+				if len(nodes) == 0 {
+					<tr><td colspan="6">No servers configured yet.</td></tr>
+				} else {
+					for _, n := range nodes {
+						<tr>
+							<td>{ n.Name }</td>
+							<td>{ n.endpoint() }</td>
+							<td>{ serverStatusText(n) }</td>
+							<td>{ n.RecordCount }</td>
+							<td>{ serverLastSyncText(n.LastSyncAt) }</td>
+							<td><button class="danger" data-on:click={ deleteServerAction(n.ID) }>Remove</button></td>
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</section>
+}
+
+templ RecordsFragment(rows []recordRow) {
+	<section id="records" class="panel">
+		<h2>Parked Domains & DNS Records</h2>
+		<table>
+			<thead>
+				<tr><th>Name</th><th>Type</th><th>Value</th><th>TTL</th><th>Zone</th><th>Account</th></tr>
+			</thead>
+			<tbody>
+				if len(rows) == 0 {
+					<tr><td colspan="6">No records match current filter.</td></tr>
+				} else {
+					for _, row := range rows {
+						<tr data-show={ "$filter === '' || el.dataset.search.includes($filter)" } data-search={ recordSearchIndex(row) }>
+							<td>{ row.Record.Name }</td>
+							<td>{ row.Record.Type }</td>
+							<td>{ recordValueText(row.Record) }</td>
+							<td>{ row.Record.TTL }</td>
+							<td>{ row.Record.Zone }</td>
+							<td>{ row.Account }</td>
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</section>
+}
+
+templ ClockFragment(now string) {
+	<div id="clock">{ now }</div>
+}
