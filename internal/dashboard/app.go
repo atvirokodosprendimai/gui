@@ -65,9 +65,9 @@ func (a *App) InitError() error {
 	return a.initErr
 }
 
-func (a *App) Close() error {
+func (a *App) Close(ctx context.Context) error {
 	if a.natsBridge != nil {
-		a.natsBridge.Close()
+		a.natsBridge.Close(ctx)
 	}
 	return nil
 }
@@ -108,7 +108,7 @@ func (a *App) RunSyncLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			a.syncOnce()
+			a.syncOnce(ctx)
 			a.cleanupExpiredSessions()
 		}
 	}

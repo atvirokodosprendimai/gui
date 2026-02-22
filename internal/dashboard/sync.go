@@ -1,8 +1,14 @@
 package dashboard
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
-func (a *App) syncOnce() {
+func (a *App) syncOnce(ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	a.syncMu.Lock()
 	defer a.syncMu.Unlock()
 
@@ -21,7 +27,10 @@ func (a *App) syncOnce() {
 	serverViews := make(map[string]map[string]dnsRecord, len(nodes))
 
 	for _, n := range nodes {
-		recs, err := a.fetchRecords(n)
+		if ctx.Err() != nil {
+			return
+		}
+		recs, err := a.fetchRecords(ctx, n)
 		if err != nil {
 			n.LastError = err.Error()
 			n.Online = false
@@ -54,6 +63,9 @@ func (a *App) syncOnce() {
 	}
 
 	for _, n := range nodes {
+		if ctx.Err() != nil {
+			return
+		}
 		serverSet, ok := serverViews[n.ID]
 		if !ok {
 			continue
@@ -64,7 +76,7 @@ func (a *App) syncOnce() {
 				continue
 			}
 
-			if err := a.addRecordToServer(n, rec); err != nil {
+			if err := a.addRecordToServer(ctx, n, rec); err != nil {
 				n.Online = false
 				n.LastError = err.Error()
 				n.LastSyncAt = time.Now().UTC()

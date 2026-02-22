@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -145,7 +146,7 @@ func TestSyncOnce_ReconcilesDashboardAndServers(t *testing.T) {
 	a.nodes["n1"] = node{ID: "n1", Name: "n1", URL: n1.server.URL, Port: portFromURL(t, n1.server.URL), Token: tok1}
 	a.nodes["n2"] = node{ID: "n2", Name: "n2", URL: n2.server.URL, Port: portFromURL(t, n2.server.URL), Token: tok2}
 
-	a.syncOnce()
+	a.syncOnce(context.Background())
 
 	if got := len(a.dashboard); got != 2 {
 		t.Fatalf("dashboard records = %d, want 2", got)

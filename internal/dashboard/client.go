@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,13 +11,13 @@ import (
 	"strings"
 )
 
-func (a *App) fetchRecords(n node) ([]dnsRecord, error) {
+func (a *App) fetchRecords(ctx context.Context, n node) ([]dnsRecord, error) {
 	endpoint := n.endpoint()
 	if endpoint == "" {
 		return nil, fmt.Errorf("invalid server endpoint")
 	}
 
-	req, err := http.NewRequest(http.MethodGet, endpoint+"/v1/records", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+"/v1/records", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +41,7 @@ func (a *App) fetchRecords(n node) ([]dnsRecord, error) {
 	return out.Records, nil
 }
 
-func (a *App) addRecordToServer(n node, rec dnsRecord) error {
+func (a *App) addRecordToServer(ctx context.Context, n node, rec dnsRecord) error {
 	endpoint := n.endpoint()
 	if endpoint == "" {
 		return fmt.Errorf("invalid server endpoint")
@@ -52,7 +53,8 @@ func (a *App) addRecordToServer(n node, rec dnsRecord) error {
 		return err
 	}
 
-	req, err := http.NewRequest(
+	req, err := http.NewRequestWithContext(
+		ctx,
 		http.MethodPost,
 		endpoint+"/v1/records/"+url.PathEscape(name)+"/add",
 		bytes.NewReader(body),

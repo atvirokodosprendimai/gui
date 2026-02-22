@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -25,17 +26,37 @@ type natsBridge struct {
 	subs []*nats.Subscription
 }
 
-func (b *natsBridge) Close() {
+func (b *natsBridge) Close(ctx context.Context) {
 	if b == nil {
 		return
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	for _, s := range b.subs {
 		if s != nil {
-			_ = s.Drain()
+			done := make(chan struct{})
+			go func(sub *nats.Subscription) {
+				_ = sub.Drain()
+				close(done)
+			}(s)
+			select {
+			case <-done:
+			case <-ctx.Done():
+				_ = s.Unsubscribe()
+			}
 		}
 	}
 	if b.nc != nil {
-		b.nc.Drain()
+		done := make(chan struct{})
+		go func() {
+			b.nc.Drain()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-ctx.Done():
+		}
 		b.nc.Close()
 	}
 }

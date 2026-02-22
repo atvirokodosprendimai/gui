@@ -58,7 +58,11 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	go app.RunSyncLoop(ctx)
+	syncDone := make(chan struct{})
+	go func() {
+		defer close(syncDone)
+		app.RunSyncLoop(ctx)
+	}()
 
 	srv := &http.Server{
 		Addr:              addr,
@@ -81,11 +85,15 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		_ = srv.Shutdown(shutdownCtx)
-		_ = app.Close()
+		_ = app.Close(shutdownCtx)
+		select {
+		case <-syncDone:
+		case <-shutdownCtx.Done():
+		}
 		_ = sqlDB.Close()
 	case err := <-errCh:
 		if err != nil && err != http.ErrServerClosed {
-			_ = app.Close()
+			_ = app.Close(context.Background())
 			_ = sqlDB.Close()
 			log.Fatal(err)
 		}

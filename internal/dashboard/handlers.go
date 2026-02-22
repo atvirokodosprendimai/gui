@@ -60,7 +60,7 @@ func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 	a.nodes[id] = n
 	a.mu.Unlock()
 
-	a.syncOnce()
+	a.syncOnce(r.Context())
 	a.setFlash(r, "server added: "+name)
 	a.notifySessionElements(r, "flash")
 	w.WriteHeader(http.StatusNoContent)
@@ -161,7 +161,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 
 	failures := 0
 	for _, n := range nodes {
-		if err := a.addRecordToServer(n, rec); err != nil {
+		if err := a.addRecordToServer(r.Context(), n, rec); err != nil {
 			failures++
 			n.Online = false
 			n.LastError = err.Error()
@@ -172,7 +172,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	a.syncOnce()
+	a.syncOnce(r.Context())
 	if failures > 0 {
 		a.setFlash(r, fmt.Sprintf("parked %s with %d server errors", domain, failures))
 	} else {
@@ -251,7 +251,7 @@ func (a *App) handleSyncNow(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	a.syncOnce()
+	a.syncOnce(r.Context())
 	a.setFlash(r, "sync complete at "+time.Now().UTC().Format(time.RFC3339))
 	a.notifySessionElements(r, "flash")
 	w.WriteHeader(http.StatusNoContent)
