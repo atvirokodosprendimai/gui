@@ -17,14 +17,14 @@ func (a *App) handleIndex(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(r) {
 		a.setFlash(r, "admin role required")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	var sig addServerSignals
 	if err := readDatastarSignals(r, &sig); err != nil {
 		a.setFlash(r, "invalid request payload")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -35,7 +35,7 @@ func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 
 	if name == "" || baseURL == "" {
 		a.setFlash(r, "name and url are required")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -44,7 +44,7 @@ func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 	n := node{ID: id, Name: name, URL: baseURL, Port: port, Token: token}
 	if n.endpoint() == "" {
 		a.setFlash(r, "invalid server URL")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -55,14 +55,14 @@ func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 
 	a.syncOnce()
 	a.setFlash(r, "server added: "+name)
-	a.notifyElementsChanged("flash")
+	a.notifySessionElements(r, "flash")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) handleDeleteServer(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(r) {
 		a.setFlash(r, "admin role required")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -72,7 +72,8 @@ func (a *App) handleDeleteServer(w http.ResponseWriter, r *http.Request) {
 	a.mu.Unlock()
 
 	a.setFlash(r, "server removed")
-	a.notifyElementsChanged("flash", "servers", "overview")
+	a.notifySessionElements(r, "flash")
+	a.notifyElementsChanged("servers", "overview")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -80,7 +81,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 	var sig parkDomainSignals
 	if err := readDatastarSignals(r, &sig); err != nil {
 		a.setFlash(r, "invalid request payload")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -96,7 +97,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 
 	if domain == "" {
 		a.setFlash(r, "domain is required")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -118,7 +119,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), viewer.Email); err != nil {
 			a.mu.Unlock()
 			a.setFlash(r, "failed to save domain owner")
-			a.notifyElementsChanged("flash")
+			a.notifySessionElements(r, "flash")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -127,7 +128,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), account); err != nil {
 			a.mu.Unlock()
 			a.setFlash(r, "failed to save domain owner")
-			a.notifyElementsChanged("flash")
+			a.notifySessionElements(r, "flash")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -136,7 +137,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), "unassigned"); err != nil {
 			a.mu.Unlock()
 			a.setFlash(r, "failed to save domain owner")
-			a.notifyElementsChanged("flash")
+			a.notifySessionElements(r, "flash")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -166,7 +167,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 	} else {
 		a.setFlash(r, "parked: "+domain)
 	}
-	a.notifyElementsChanged("flash")
+	a.notifySessionElements(r, "flash")
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -174,7 +175,7 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 	var sig transferDomainSignals
 	if err := readDatastarSignals(r, &sig); err != nil {
 		a.setFlash(r, "invalid request payload")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -189,7 +190,7 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 
 	if domain == "" || toAccount == "" {
 		a.setFlash(r, "domain and target account are required")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -200,7 +201,7 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 		a.mu.RUnlock()
 		if owner != viewer.Email {
 			a.setFlash(r, "you can transfer only your own parked domains")
-			a.notifyElementsChanged("flash")
+			a.notifySessionElements(r, "flash")
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
@@ -209,7 +210,7 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 	if a.db != nil {
 		if _, err := a.lookupUserByEmail(toAccount); err != nil {
 			a.setFlash(r, "target account does not exist")
-			a.notifyElementsChanged("flash")
+			a.notifySessionElements(r, "flash")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -220,40 +221,41 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 	a.mu.Unlock()
 	if err := a.saveDomainOwner(domain, toAccount); err != nil {
 		a.setFlash(r, "failed to persist domain transfer")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	a.setFlash(r, fmt.Sprintf("transferred %s to account %s", domain, toAccount))
-	a.notifyElementsChanged("flash", "records")
+	a.notifySessionElements(r, "flash")
+	a.notifyElementsChanged("records")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) handleSyncNow(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(r) {
 		a.setFlash(r, "admin role required")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	a.syncOnce()
 	a.setFlash(r, "sync complete at "+time.Now().UTC().Format(time.RFC3339))
-	a.notifyElementsChanged("flash")
+	a.notifySessionElements(r, "flash")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(r) {
 		a.setFlash(r, "admin role required")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	var sig createUserSignals
 	if err := readDatastarSignals(r, &sig); err != nil {
 		a.setFlash(r, "invalid request payload")
-		a.notifyElementsChanged("flash")
+		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -268,6 +270,7 @@ func (a *App) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	} else {
 		a.setFlash(r, "user created: "+strings.ToLower(email))
 	}
-	a.notifyElementsChanged("flash", "users")
+	a.notifySessionElements(r, "flash")
+	a.notifyElementsChanged("users")
 	w.WriteHeader(http.StatusNoContent)
 }

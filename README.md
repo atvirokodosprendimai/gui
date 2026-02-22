@@ -9,6 +9,7 @@ This project is built with:
 - Datastar for reactive UI updates
 - Flowbite/Tailwind for UI styling
 - CQRS-style single SSE read stream for realtime updates
+- Optional NATS-backed distributed update bus (`fe.update.*`)
 - SQLite (pure Go driver, no cgo) + GORM for persistence
 - Goose SQL migrations (no GORM auto-migrations)
 
@@ -31,6 +32,12 @@ This project is built with:
 - **Query side** (`/any/cqrs`): long-lived Datastar SSE stream that patches read-model HTML fragments
 
 SSE update payloads are element-targeted (for example `{"el":"records"}` or `{"el":"clock"}`), so only changed fragments are rendered and pushed.
+
+When `GUI_NATS_URL` is configured, update intents are published/subscribed on:
+
+- `fe.update.global`
+- `fe.update.user.<user_id>`
+- `fe.update.session.<session_id>`
 
 Patched UI nodes:
 
@@ -74,6 +81,7 @@ No cgo requirement for SQLite in this setup.
 - `GUI_DB` (default `gui.db`) - SQLite database path
 - `GUI_ADMIN_EMAIL` (optional) - bootstrap admin email (first run)
 - `GUI_ADMIN_PASSWORD` (optional) - bootstrap admin password (first run)
+- `GUI_NATS_URL` (optional) - NATS server URL for distributed CQRS updates
 
 ## Local Run
 
@@ -174,5 +182,5 @@ go test ./...
 
 ## Notes
 
-- Current CQRS notifier fan-out is in-process.
-- If you need multi-instance distributed read-model notifications, wire CQRS notifier subjects via NATS next.
+- CQRS notifier supports local in-process fan-out by default.
+- Set `GUI_NATS_URL` to enable distributed updates over NATS subjects.

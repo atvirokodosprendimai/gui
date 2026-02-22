@@ -17,11 +17,18 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	email := strings.TrimSpace(r.Form.Get("email"))
 	password := r.Form.Get("password")
+	key := loginKey(r, email)
+	if !a.allowLogin(key) {
+		renderTempl(w, r, http.StatusTooManyRequests, LoginPage("too many attempts, retry later"))
+		return
+	}
 	u, err := a.authenticate(email, password)
 	if err != nil {
+		a.noteLoginFail(key)
 		renderTempl(w, r, http.StatusUnauthorized, LoginPage("invalid credentials"))
 		return
 	}
+	a.noteLoginSuccess(key)
 	token, err := a.createSession(u.ID)
 	if err != nil {
 		renderTempl(w, r, http.StatusInternalServerError, LoginPage("session creation failed"))

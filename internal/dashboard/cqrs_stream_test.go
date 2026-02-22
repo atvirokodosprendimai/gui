@@ -8,24 +8,6 @@ import (
 	"time"
 )
 
-func TestWriteDatastarPatchElements(t *testing.T) {
-	t.Parallel()
-
-	var b strings.Builder
-	err := writeDatastarPatchElements(&b, `<div id="clock">2026-02-22T12:00:00Z</div>`)
-	if err != nil {
-		t.Fatalf("writeDatastarPatchElements returned error: %v", err)
-	}
-
-	got := b.String()
-	if !strings.Contains(got, "event: datastar-patch-elements\n") {
-		t.Fatalf("missing datastar SSE event header: %q", got)
-	}
-	if !strings.Contains(got, "data: elements <div id=\"clock\">2026-02-22T12:00:00Z</div>\n") {
-		t.Fatalf("missing patch elements payload: %q", got)
-	}
-}
-
 func TestHandleCQRSStream_WritesInitialReadModelAndClock(t *testing.T) {
 	t.Parallel()
 

@@ -14,14 +14,17 @@ import (
 
 type App struct {
 	mu           sync.RWMutex
+	authMu       sync.Mutex
 	nodes        map[string]node
 	dashboard    map[string]dnsRecord
 	domainOwners map[string]string
 	watchers     map[chan uiUpdate]struct{}
+	natsBridge   *natsBridge
 	client       *http.Client
 	db           *gorm.DB
 	syncInterval time.Duration
 	flashBySess  map[string]string
+	loginLimiter map[string]loginState
 	initErr      error
 }
 
@@ -47,6 +50,7 @@ func New(client *http.Client, syncInterval time.Duration, dbs ...*gorm.DB) *App 
 		db:           db,
 		syncInterval: syncInterval,
 		flashBySess:  make(map[string]string),
+		loginLimiter: make(map[string]loginState),
 	}
 	if err := app.loadDomainOwners(); err != nil {
 		app.initErr = err
@@ -58,8 +62,16 @@ func (a *App) InitError() error {
 	return a.initErr
 }
 
+func (a *App) Close() error {
+	if a.natsBridge != nil {
+		a.natsBridge.Close()
+	}
+	return nil
+}
+
 func (a *App) Routes() http.Handler {
 	r := chi.NewRouter()
+	r.Use(securityHeaders)
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true}`))
@@ -117,33 +129,29 @@ func (a *App) setFlash(r *http.Request, msg string) {
 }
 
 type uiUpdate struct {
-	Subject string `json:"subject,omitempty"`
-	Element string `json:"el"`
+	Subject   string `json:"subject,omitempty"`
+	Scope     string `json:"scope,omitempty"`
+	Element   string `json:"el"`
+	UserID    string `json:"user_id,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
 }
 
 const subjectFEUpdate = "fe.update"
 
 func (a *App) notifyElementsChanged(elements ...string) {
-	a.mu.RLock()
-	watchers := make([]chan uiUpdate, 0, len(a.watchers))
-	for ch := range a.watchers {
-		watchers = append(watchers, ch)
-	}
-	a.mu.RUnlock()
-
 	for _, el := range elements {
-		upd := uiUpdate{Subject: subjectFEUpdate, Element: el}
-		for _, ch := range watchers {
-			select {
-			case ch <- upd:
-			default:
-			}
-		}
+		a.emitUpdate(uiUpdate{Subject: subjectFEUpdate, Scope: scopeGlobal, Element: el})
 	}
 }
 
-func (a *App) notifyReadModelChanged() {
-	a.notifyElementsChanged("flash", "overview", "servers", "records", "users")
+func (a *App) notifySessionElements(r *http.Request, elements ...string) {
+	token := sessionTokenFromRequest(r)
+	if token == "" {
+		return
+	}
+	for _, el := range elements {
+		a.emitUpdate(uiUpdate{Subject: subjectFEUpdate, Scope: scopeSession, Element: el, SessionID: token})
+	}
 }
 
 func (a *App) addWatcher() chan uiUpdate {

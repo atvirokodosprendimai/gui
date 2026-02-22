@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/atvirokodosprendimai/gui/internal/dashboard"
@@ -46,11 +48,41 @@ func main() {
 	} else {
 		log.Printf("admin bootstrap skipped: set GUI_ADMIN_EMAIL and GUI_ADMIN_PASSWORD")
 	}
-	go app.RunSyncLoop(context.Background())
+	if natsURL := strings.TrimSpace(os.Getenv("GUI_NATS_URL")); natsURL != "" {
+		if err := app.ConfigureNATS(natsURL); err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("nats notifier enabled: %s", natsURL)
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go app.RunSyncLoop(ctx)
+
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: app.Routes(),
+	}
 
 	log.Printf("dashboard listening on %s", addr)
-	if err := http.ListenAndServe(addr, app.Routes()); err != nil {
-		log.Fatal(err)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- srv.ListenAndServe()
+	}()
+
+	select {
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(shutdownCtx)
+		_ = app.Close()
+		_ = sqlDB.Close()
+	case err := <-errCh:
+		if err != nil && err != http.ErrServerClosed {
+			_ = app.Close()
+			_ = sqlDB.Close()
+			log.Fatal(err)
+		}
 	}
 }
 
