@@ -76,5 +76,5 @@ func (a *App) syncOnce() {
 	a.mu.Lock()
 	a.dashboard = union
 	a.mu.Unlock()
-	a.notifyReadModelChanged()
+	a.notifyElementsChanged("overview", "servers", "records")
 }

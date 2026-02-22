@@ -24,7 +24,19 @@ func (a *App) handleCQRSStream(w http.ResponseWriter, r *http.Request) {
 	watcher := a.addWatcher()
 	defer a.removeWatcher(watcher)
 
-	if err := a.writeReadModelPatch(w, r, false); err != nil {
+	if err := a.writeElementPatch(w, r, "flash", false); err != nil {
+		return
+	}
+	if err := a.writeElementPatch(w, r, "overview", false); err != nil {
+		return
+	}
+	if err := a.writeElementPatch(w, r, "servers", false); err != nil {
+		return
+	}
+	if err := a.writeElementPatch(w, r, "records", false); err != nil {
+		return
+	}
+	if err := a.writeElementPatch(w, r, "users", false); err != nil {
 		return
 	}
 	if err := a.writeClockPatch(w, r, time.Now().UTC()); err != nil {
@@ -39,8 +51,11 @@ func (a *App) handleCQRSStream(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
-		case <-watcher:
-			if err := a.writeReadModelPatch(w, r, true); err != nil {
+		case upd := <-watcher:
+			if upd.Subject != "" && upd.Subject != subjectFEUpdate {
+				continue
+			}
+			if err := a.writeElementPatch(w, r, upd.Element, true); err != nil {
 				return
 			}
 			flusher.Flush()
@@ -53,19 +68,27 @@ func (a *App) handleCQRSStream(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *App) writeReadModelPatch(w io.Writer, r *http.Request, consumeFlash bool) error {
-	flash := ""
-	if consumeFlash {
-		flash = a.consumeFlash()
+func (a *App) writeElementPatch(w io.Writer, r *http.Request, el string, consumeFlash bool) error {
+	viewer := currentUser(r)
+	switch el {
+	case "flash":
+		msg := ""
+		if consumeFlash {
+			msg = a.consumeFlash(r)
+		}
+		return writeDatastarPatchComponent(w, r.Context(), FlashFragment(msg))
+	case "overview":
+		nodeCount, onlineCount, recordCount := a.overviewCounts()
+		return writeDatastarPatchComponent(w, r.Context(), OverviewFragment(nodeCount, onlineCount, recordCount))
+	case "servers":
+		return writeDatastarPatchComponent(w, r.Context(), ServersFragment(a.sortedNodes()))
+	case "records":
+		return writeDatastarPatchComponent(w, r.Context(), RecordsFragment(a.filteredRecordRows("", viewer)))
+	case "users":
+		return writeDatastarPatchComponent(w, r.Context(), UsersFragment(viewer, a.sortedUsers()))
+	default:
+		return nil
 	}
-	nodeCount, onlineCount, recordCount := a.overviewCounts()
-	component := templ.Join(
-		FlashFragment(flash),
-		OverviewFragment(nodeCount, onlineCount, recordCount),
-		ServersFragment(a.sortedNodes()),
-		RecordsFragment(a.filteredRecordRows("", currentUser(r))),
-	)
-	return writeDatastarPatchComponent(w, r.Context(), component)
 }
 
 func (a *App) writeClockPatch(w io.Writer, r *http.Request, now time.Time) error {

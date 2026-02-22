@@ -61,7 +61,7 @@ templ IndexPage(userEmail string, role string) {
 							</div>
 						</div>
 						<div class="flex flex-wrap gap-3">
-							<button class="inline-flex items-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300" data-on:click="@get('/ui/sync/now')">Sync Now</button>
+							<button class="inline-flex items-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300" data-on:click="@post('/ui/sync/now')">Sync Now</button>
 							<a class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200" href="/auth/logout">Logout</a>
 						</div>
 					</div>
@@ -105,7 +105,7 @@ templ IndexPage(userEmail string, role string) {
 									<input class="block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" data-bind:serverToken placeholder="token"/>
 								</div>
 							</div>
-							<button class="inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300" data-on:click="@get('/ui/server/add?name=' + encodeURIComponent($serverName) + '&url=' + encodeURIComponent($serverURL) + '&port=' + encodeURIComponent($serverPort) + '&token=' + encodeURIComponent($serverToken))">Save Server</button>
+							<button class="inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300" data-on:click="@post('/ui/server/add')">Save Server</button>
 						</div>
 					</article>
 					}
@@ -135,7 +135,7 @@ templ IndexPage(userEmail string, role string) {
 								<input class="block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" data-bind:recordZone placeholder="Zone (optional)"/>
 								<input class="block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" data-bind:domainAccount placeholder="Owner account"/>
 							</div>
-							<button class="inline-flex items-center justify-center rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-4 focus:ring-cyan-300" data-on:click="@get('/ui/domain/park?domain=' + encodeURIComponent($domain) + '&type=' + encodeURIComponent($recordType) + '&ip=' + encodeURIComponent($recordIP) + '&ttl=' + encodeURIComponent($recordTTL) + '&zone=' + encodeURIComponent($recordZone) + '&target=' + encodeURIComponent($recordTarget) + '&text=' + encodeURIComponent($recordText) + '&account=' + encodeURIComponent($domainAccount))">Park Domain</button>
+							<button class="inline-flex items-center justify-center rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-4 focus:ring-cyan-300" data-on:click="@post('/ui/domain/park')">Park Domain</button>
 						</div>
 					</article>
 
@@ -144,7 +144,7 @@ templ IndexPage(userEmail string, role string) {
 						<div class="grid gap-4">
 							<input class="block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" data-bind:transferDomain placeholder="example.com"/>
 							<input class="block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" data-bind:transferToAccount placeholder="target account"/>
-							<button class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200" data-on:click="@get('/ui/domain/transfer?domain=' + encodeURIComponent($transferDomain) + '&to_account=' + encodeURIComponent($transferToAccount))">Transfer Domain</button>
+							<button class="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200" data-on:click="@post('/ui/domain/transfer')">Transfer Domain</button>
 						</div>
 					</article>
 
@@ -155,7 +155,7 @@ templ IndexPage(userEmail string, role string) {
 							<input class="block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" data-bind:newUserEmail placeholder="new user email"/>
 							<input class="block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" data-bind:newUserPassword type="password" placeholder="temporary password"/>
 							<select class="block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500" data-bind:newUserRole><option>user</option><option>admin</option></select>
-							<button class="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-300" data-on:click="@get('/ui/users/create?email=' + encodeURIComponent($newUserEmail) + '&password=' + encodeURIComponent($newUserPassword) + '&role=' + encodeURIComponent($newUserRole))">Create User</button>
+							<button class="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-300" data-on:click="@post('/ui/users/create')">Create User</button>
 						</div>
 					</article>
 					}
@@ -168,6 +168,7 @@ templ IndexPage(userEmail string, role string) {
 
 				<section id="servers"></section>
 				<section id="records"></section>
+				<section id="users"></section>
 			</main>
 			<script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js"></script>
 		</body>
@@ -262,6 +263,38 @@ templ RecordsFragment(rows []recordRow) {
 			</table>
 		</div>
 	</section>
+}
+
+templ UsersFragment(viewer *User, users []User) {
+	if viewer == nil || viewer.Role != "admin" {
+		<section id="users"></section>
+	} else {
+		<section id="users" class="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+			<div class="border-b border-slate-200 px-5 py-4">
+				<h2 class="text-lg font-semibold text-slate-900">Users</h2>
+			</div>
+			<div class="overflow-x-auto">
+				<table class="w-full text-left text-sm text-slate-700">
+					<thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+						<tr><th class="px-5 py-3">Email</th><th class="px-5 py-3">Role</th><th class="px-5 py-3">Created</th></tr>
+					</thead>
+					<tbody>
+						if len(users) == 0 {
+							<tr class="border-t border-slate-200"><td class="px-5 py-4 text-slate-500" colspan="3">No users found.</td></tr>
+						} else {
+							for _, u := range users {
+								<tr class="border-t border-slate-200 bg-white hover:bg-slate-50">
+									<td class="px-5 py-4 font-medium text-slate-900">{ u.Email }</td>
+									<td class="px-5 py-4 uppercase">{ u.Role }</td>
+									<td class="px-5 py-4">{ serverLastSyncText(u.CreatedAt) }</td>
+								</tr>
+							}
+						}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	}
 }
 
 templ ClockFragment(now string) {

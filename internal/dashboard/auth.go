@@ -141,6 +141,9 @@ func (a *App) deleteSession(token string) {
 		return
 	}
 	_ = a.db.Where("token = ?", token).Delete(&Session{}).Error
+	a.mu.Lock()
+	delete(a.flashBySess, token)
+	a.mu.Unlock()
 }
 
 func (a *App) userFromRequest(r *http.Request) (*User, error) {

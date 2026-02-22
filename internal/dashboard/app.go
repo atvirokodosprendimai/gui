@@ -17,11 +17,12 @@ type App struct {
 	nodes        map[string]node
 	dashboard    map[string]dnsRecord
 	domainOwners map[string]string
-	watchers     map[chan struct{}]struct{}
+	watchers     map[chan uiUpdate]struct{}
 	client       *http.Client
 	db           *gorm.DB
 	syncInterval time.Duration
-	flash        string
+	flashBySess  map[string]string
+	initErr      error
 }
 
 func New(client *http.Client, syncInterval time.Duration, dbs ...*gorm.DB) *App {
@@ -41,13 +42,20 @@ func New(client *http.Client, syncInterval time.Duration, dbs ...*gorm.DB) *App 
 		nodes:        make(map[string]node),
 		dashboard:    make(map[string]dnsRecord),
 		domainOwners: make(map[string]string),
-		watchers:     make(map[chan struct{}]struct{}),
+		watchers:     make(map[chan uiUpdate]struct{}),
 		client:       client,
 		db:           db,
 		syncInterval: syncInterval,
+		flashBySess:  make(map[string]string),
 	}
-	_ = app.loadDomainOwners()
+	if err := app.loadDomainOwners(); err != nil {
+		app.initErr = err
+	}
 	return app
+}
+
+func (a *App) InitError() error {
+	return a.initErr
 }
 
 func (a *App) Routes() http.Handler {
@@ -64,12 +72,12 @@ func (a *App) Routes() http.Handler {
 	r.Group(func(pr chi.Router) {
 		pr.Use(a.requireAuth)
 		pr.Get("/", a.handleIndex)
-		pr.Get("/ui/server/add", a.handleAddServer)
-		pr.Get("/ui/server/delete/{id}", a.handleDeleteServer)
-		pr.Get("/ui/domain/park", a.handleParkDomain)
-		pr.Get("/ui/domain/transfer", a.handleTransferDomain)
-		pr.Get("/ui/users/create", a.handleCreateUser)
-		pr.Get("/ui/sync/now", a.handleSyncNow)
+		pr.Post("/ui/server/add", a.handleAddServer)
+		pr.Post("/ui/server/delete/{id}", a.handleDeleteServer)
+		pr.Post("/ui/domain/park", a.handleParkDomain)
+		pr.Post("/ui/domain/transfer", a.handleTransferDomain)
+		pr.Post("/ui/users/create", a.handleCreateUser)
+		pr.Post("/ui/sync/now", a.handleSyncNow)
 		pr.Get("/any/cqrs", a.handleCQRSStream)
 	})
 
@@ -90,47 +98,77 @@ func (a *App) RunSyncLoop(ctx context.Context) {
 	}
 }
 
-func (a *App) setFlash(msg string) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	a.flash = msg
+func sessionTokenFromRequest(r *http.Request) string {
+	c, err := r.Cookie("session_token")
+	if err != nil {
+		return ""
+	}
+	return c.Value
 }
 
-func (a *App) notifyReadModelChanged() {
+func (a *App) setFlash(r *http.Request, msg string) {
+	key := sessionTokenFromRequest(r)
+	if key == "" {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.flashBySess[key] = msg
+}
+
+type uiUpdate struct {
+	Subject string `json:"subject,omitempty"`
+	Element string `json:"el"`
+}
+
+const subjectFEUpdate = "fe.update"
+
+func (a *App) notifyElementsChanged(elements ...string) {
 	a.mu.RLock()
-	watchers := make([]chan struct{}, 0, len(a.watchers))
+	watchers := make([]chan uiUpdate, 0, len(a.watchers))
 	for ch := range a.watchers {
 		watchers = append(watchers, ch)
 	}
 	a.mu.RUnlock()
 
-	for _, ch := range watchers {
-		select {
-		case ch <- struct{}{}:
-		default:
+	for _, el := range elements {
+		upd := uiUpdate{Subject: subjectFEUpdate, Element: el}
+		for _, ch := range watchers {
+			select {
+			case ch <- upd:
+			default:
+			}
 		}
 	}
 }
 
-func (a *App) addWatcher() chan struct{} {
-	ch := make(chan struct{}, 1)
+func (a *App) notifyReadModelChanged() {
+	a.notifyElementsChanged("flash", "overview", "servers", "records", "users")
+}
+
+func (a *App) addWatcher() chan uiUpdate {
+	ch := make(chan uiUpdate, 8)
 	a.mu.Lock()
 	a.watchers[ch] = struct{}{}
 	a.mu.Unlock()
 	return ch
 }
 
-func (a *App) removeWatcher(ch chan struct{}) {
+func (a *App) removeWatcher(ch chan uiUpdate) {
 	a.mu.Lock()
 	delete(a.watchers, ch)
 	a.mu.Unlock()
 }
 
-func (a *App) consumeFlash() string {
+func (a *App) consumeFlash(r *http.Request) string {
+	key := sessionTokenFromRequest(r)
+	if key == "" {
+		return ""
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	msg := a.flash
-	a.flash = ""
+	msg := a.flashBySess[key]
+	delete(a.flashBySess, key)
 	return msg
 }
 
@@ -204,4 +242,15 @@ func (a *App) filteredRecordRows(filter string, viewer *User) []recordRow {
 	}
 
 	return rows
+}
+
+func (a *App) sortedUsers() []User {
+	if a.db == nil {
+		return nil
+	}
+	users := make([]User, 0)
+	if err := a.db.Select("id", "email", "role", "created_at").Order("email asc").Find(&users).Error; err != nil {
+		return nil
+	}
+	return users
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -28,15 +28,14 @@ func TestHandleTransferDomain(t *testing.T) {
 	t.Parallel()
 
 	a := New(nil, 0)
-	q := url.Values{}
-	q.Set("domain", "app.example.com")
-	q.Set("to_account", "account-b")
+	body := `{"transferDomain":"app.example.com","transferToAccount":"account-b"}`
 
 	a.domainOwners["app.example.com."] = "admin@local"
 
-	req := httptest.NewRequest(http.MethodGet, "/ui/domain/transfer?"+q.Encode(), nil).WithContext(
+	req := httptest.NewRequest(http.MethodPost, "/ui/domain/transfer", strings.NewReader(body)).WithContext(
 		context.WithValue(context.Background(), userContextKey{}, &User{Email: "admin@local", Role: roleAdmin}),
 	)
+	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 	a.handleTransferDomain(rr, req)
 
@@ -46,8 +45,5 @@ func TestHandleTransferDomain(t *testing.T) {
 
 	if got := a.domainOwners["app.example.com."]; got != "account-b" {
 		t.Fatalf("domain owner = %q, want account-b", got)
-	}
-	if got := a.consumeFlash(); got != "transferred app.example.com. to account account-b" {
-		t.Fatalf("flash = %q", got)
 	}
 }

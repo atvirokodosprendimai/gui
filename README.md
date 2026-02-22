@@ -20,6 +20,7 @@ This project is built with:
 - Multi-user auth with roles:
   - `admin`: server management, sync, user creation, full domain transfer
   - `user`: park domains, transfer own domains
+- Admin users can view a live users table in the dashboard UI
 - Realtime UI updates over a single SSE connection (`/any/cqrs`)
 
 ## Architecture Summary
@@ -28,6 +29,8 @@ This project is built with:
 
 - **Command side** (`/ui/*`): mutates state and returns `204 No Content`
 - **Query side** (`/any/cqrs`): long-lived Datastar SSE stream that patches read-model HTML fragments
+
+SSE update payloads are element-targeted (for example `{"el":"records"}` or `{"el":"clock"}`), so only changed fragments are rendered and pushed.
 
 Patched UI nodes:
 
@@ -69,8 +72,8 @@ No cgo requirement for SQLite in this setup.
 
 - `GUI_ADDR` (default `:8090`) - HTTP listen address
 - `GUI_DB` (default `gui.db`) - SQLite database path
-- `GUI_ADMIN_EMAIL` (default `admin@local`) - bootstrap admin email
-- `GUI_ADMIN_PASSWORD` (default `admin123`) - bootstrap admin password
+- `GUI_ADMIN_EMAIL` (optional) - bootstrap admin email (first run)
+- `GUI_ADMIN_PASSWORD` (optional) - bootstrap admin password (first run)
 
 ## Local Run
 
@@ -90,7 +93,7 @@ go run ./cmd/gui
 
 - `http://localhost:8090/login`
 
-On first run, an admin is created if no admin exists.
+On first run, an admin is created only when both `GUI_ADMIN_EMAIL` and `GUI_ADMIN_PASSWORD` are set.
 
 ## Migrations (Goose)
 
@@ -116,6 +119,10 @@ Important policy:
 - GET `/auth/logout`
 
 Session is stored server-side in `sessions` table and tracked via `session_token` cookie.
+
+### Command methods
+
+All state-changing UI commands use `POST` and Datastar `@post(...)` actions with Datastar signal payloads (not query-string secrets).
 
 ### Role permissions
 

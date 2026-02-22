@@ -109,27 +109,27 @@ func IndexPage(userEmail string, role string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></div></div><div class=\"flex flex-wrap gap-3\"><button class=\"inline-flex items-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300\" data-on:click=\"@get('/ui/sync/now')\">Sync Now</button> <a class=\"inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200\" href=\"/auth/logout\">Logout</a></div></div></div><div id=\"flash\"></div><div class=\"mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm\"><div class=\"flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between\"><div><h2 class=\"text-lg font-semibold text-slate-900\">Live Server Clock</h2><p class=\"text-sm text-slate-600\">Delivered over the same CQRS SSE stream.</p></div><div id=\"clock\" class=\"rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-700\">connecting to cqrs stream...</div></div><div data-init=\"@get('/any/cqrs', {openWhenHidden: true, requestCancellation: 'disabled'})\"></div></div><section id=\"overview\" class=\"mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3\"></section><section class=\"mb-6 grid gap-6 xl:grid-cols-3\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></div></div><div class=\"flex flex-wrap gap-3\"><button class=\"inline-flex items-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300\" data-on:click=\"@post('/ui/sync/now')\">Sync Now</button> <a class=\"inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200\" href=\"/auth/logout\">Logout</a></div></div></div><div id=\"flash\"></div><div class=\"mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm\"><div class=\"flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between\"><div><h2 class=\"text-lg font-semibold text-slate-900\">Live Server Clock</h2><p class=\"text-sm text-slate-600\">Delivered over the same CQRS SSE stream.</p></div><div id=\"clock\" class=\"rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-700\">connecting to cqrs stream...</div></div><div data-init=\"@get('/any/cqrs', {openWhenHidden: true, requestCancellation: 'disabled'})\"></div></div><section id=\"overview\" class=\"mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3\"></section><section class=\"mb-6 grid gap-6 xl:grid-cols-3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if role == "admin" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<article class=\"rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1\"><h2 class=\"mb-4 text-lg font-semibold text-slate-900\">Add Anycast Server</h2><div class=\"grid gap-4\"><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">Name</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:serverName placeholder=\"eu-west-1\"></div><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">URL / Host</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:serverURL placeholder=\"http://10.0.0.3\"></div><div class=\"grid gap-4 sm:grid-cols-2\"><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">Port</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:serverPort placeholder=\"8080\"></div><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">API Token</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:serverToken placeholder=\"token\"></div></div><button class=\"inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300\" data-on:click=\"@get('/ui/server/add?name=' + encodeURIComponent($serverName) + '&url=' + encodeURIComponent($serverURL) + '&port=' + encodeURIComponent($serverPort) + '&token=' + encodeURIComponent($serverToken))\">Save Server</button></div></article>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<article class=\"rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1\"><h2 class=\"mb-4 text-lg font-semibold text-slate-900\">Add Anycast Server</h2><div class=\"grid gap-4\"><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">Name</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:serverName placeholder=\"eu-west-1\"></div><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">URL / Host</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:serverURL placeholder=\"http://10.0.0.3\"></div><div class=\"grid gap-4 sm:grid-cols-2\"><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">Port</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:serverPort placeholder=\"8080\"></div><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">API Token</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:serverToken placeholder=\"token\"></div></div><button class=\"inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300\" data-on:click=\"@post('/ui/server/add')\">Save Server</button></div></article>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<article class=\"rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1\"><h2 class=\"mb-4 text-lg font-semibold text-slate-900\">Park Domain</h2><div class=\"grid gap-4\"><div class=\"grid gap-4 sm:grid-cols-2\"><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">Domain</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:domain placeholder=\"example.com\"></div><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">Type</label> <select class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordType><option>A</option><option>AAAA</option><option>TXT</option><option>CNAME</option><option>MX</option></select></div></div><div class=\"grid gap-4 sm:grid-cols-2\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordIP placeholder=\"IP (198.51.100.42)\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordTTL placeholder=\"TTL (60)\"></div><div class=\"grid gap-4 sm:grid-cols-2\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordTarget placeholder=\"Target (alias.example.net)\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordText placeholder=\"TXT value\"></div><div class=\"grid gap-4 sm:grid-cols-2\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordZone placeholder=\"Zone (optional)\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:domainAccount placeholder=\"Owner account\"></div><button class=\"inline-flex items-center justify-center rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-4 focus:ring-cyan-300\" data-on:click=\"@get('/ui/domain/park?domain=' + encodeURIComponent($domain) + '&type=' + encodeURIComponent($recordType) + '&ip=' + encodeURIComponent($recordIP) + '&ttl=' + encodeURIComponent($recordTTL) + '&zone=' + encodeURIComponent($recordZone) + '&target=' + encodeURIComponent($recordTarget) + '&text=' + encodeURIComponent($recordText) + '&account=' + encodeURIComponent($domainAccount))\">Park Domain</button></div></article><article class=\"rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1\"><h2 class=\"mb-4 text-lg font-semibold text-slate-900\">Transfer Domain</h2><div class=\"grid gap-4\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:transferDomain placeholder=\"example.com\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:transferToAccount placeholder=\"target account\"> <button class=\"inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200\" data-on:click=\"@get('/ui/domain/transfer?domain=' + encodeURIComponent($transferDomain) + '&to_account=' + encodeURIComponent($transferToAccount))\">Transfer Domain</button></div></article>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<article class=\"rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1\"><h2 class=\"mb-4 text-lg font-semibold text-slate-900\">Park Domain</h2><div class=\"grid gap-4\"><div class=\"grid gap-4 sm:grid-cols-2\"><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">Domain</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:domain placeholder=\"example.com\"></div><div><label class=\"mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500\">Type</label> <select class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordType><option>A</option><option>AAAA</option><option>TXT</option><option>CNAME</option><option>MX</option></select></div></div><div class=\"grid gap-4 sm:grid-cols-2\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordIP placeholder=\"IP (198.51.100.42)\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordTTL placeholder=\"TTL (60)\"></div><div class=\"grid gap-4 sm:grid-cols-2\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordTarget placeholder=\"Target (alias.example.net)\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordText placeholder=\"TXT value\"></div><div class=\"grid gap-4 sm:grid-cols-2\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:recordZone placeholder=\"Zone (optional)\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:domainAccount placeholder=\"Owner account\"></div><button class=\"inline-flex items-center justify-center rounded-lg bg-cyan-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-4 focus:ring-cyan-300\" data-on:click=\"@post('/ui/domain/park')\">Park Domain</button></div></article><article class=\"rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1\"><h2 class=\"mb-4 text-lg font-semibold text-slate-900\">Transfer Domain</h2><div class=\"grid gap-4\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:transferDomain placeholder=\"example.com\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:transferToAccount placeholder=\"target account\"> <button class=\"inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200\" data-on:click=\"@post('/ui/domain/transfer')\">Transfer Domain</button></div></article>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if role == "admin" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<article class=\"rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1\"><h2 class=\"mb-4 text-lg font-semibold text-slate-900\">Create User</h2><div class=\"grid gap-4\" data-signals=\"{newUserEmail:'',newUserPassword:'',newUserRole:'user'}\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:newUserEmail placeholder=\"new user email\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:newUserPassword type=\"password\" placeholder=\"temporary password\"> <select class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:newUserRole><option>user</option><option>admin</option></select> <button class=\"inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-300\" data-on:click=\"@get('/ui/users/create?email=' + encodeURIComponent($newUserEmail) + '&password=' + encodeURIComponent($newUserPassword) + '&role=' + encodeURIComponent($newUserRole))\">Create User</button></div></article>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<article class=\"rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-1\"><h2 class=\"mb-4 text-lg font-semibold text-slate-900\">Create User</h2><div class=\"grid gap-4\" data-signals=\"{newUserEmail:'',newUserPassword:'',newUserRole:'user'}\"><input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:newUserEmail placeholder=\"new user email\"> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:newUserPassword type=\"password\" placeholder=\"temporary password\"> <select class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:newUserRole><option>user</option><option>admin</option></select> <button class=\"inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 focus:outline-none focus:ring-4 focus:ring-slate-300\" data-on:click=\"@post('/ui/users/create')\">Create User</button></div></article>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</section><section class=\"mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm\"><label class=\"mb-2 block text-sm font-medium text-slate-700\">Search records</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:filter data-on:input=\"$filter = $filter.toLowerCase()\" placeholder=\"name, type, value, zone, account\"></section><section id=\"servers\"></section><section id=\"records\"></section></main><script src=\"https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js\"></script></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</section><section class=\"mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm\"><label class=\"mb-2 block text-sm font-medium text-slate-700\">Search records</label> <input class=\"block w-full rounded-lg border border-slate-300 bg-slate-50 p-2.5 text-sm text-slate-900 focus:border-teal-500 focus:ring-teal-500\" data-bind:filter data-on:input=\"$filter = $filter.toLowerCase()\" placeholder=\"name, type, value, zone, account\"></section><section id=\"servers\"></section><section id=\"records\"></section><section id=\"users\"></section></main><script src=\"https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js\"></script></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -171,7 +171,7 @@ func FlashFragment(msg string) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(msg)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 183, Col: 14}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 184, Col: 14}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -214,7 +214,7 @@ func OverviewFragment(nodeCount int, onlineCount int, recordCount int) templ.Com
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(nodeCount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 192, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 193, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
@@ -227,7 +227,7 @@ func OverviewFragment(nodeCount int, onlineCount int, recordCount int) templ.Com
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(onlineCount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 196, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 197, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -240,7 +240,7 @@ func OverviewFragment(nodeCount int, onlineCount int, recordCount int) templ.Com
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(recordCount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 200, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 201, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 		if templ_7745c5c3_Err != nil {
@@ -293,7 +293,7 @@ func ServersFragment(nodes []node) templ.Component {
 				var templ_7745c5c3_Var13 string
 				templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 221, Col: 65}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 222, Col: 65}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 				if templ_7745c5c3_Err != nil {
@@ -306,7 +306,7 @@ func ServersFragment(nodes []node) templ.Component {
 				var templ_7745c5c3_Var14 string
 				templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(n.endpoint())
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 222, Col: 77}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 223, Col: 77}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 				if templ_7745c5c3_Err != nil {
@@ -319,7 +319,7 @@ func ServersFragment(nodes []node) templ.Component {
 				var templ_7745c5c3_Var15 string
 				templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(serverStatusText(n))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 223, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 224, Col: 51}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 				if templ_7745c5c3_Err != nil {
@@ -332,7 +332,7 @@ func ServersFragment(nodes []node) templ.Component {
 				var templ_7745c5c3_Var16 string
 				templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(n.RecordCount)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 224, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 225, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 				if templ_7745c5c3_Err != nil {
@@ -345,7 +345,7 @@ func ServersFragment(nodes []node) templ.Component {
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(serverLastSyncText(n.LastSyncAt))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 225, Col: 64}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 226, Col: 64}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -358,7 +358,7 @@ func ServersFragment(nodes []node) templ.Component {
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(deleteServerAction(n.ID))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 226, Col: 220}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 227, Col: 220}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -417,7 +417,7 @@ func RecordsFragment(rows []recordRow) templ.Component {
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs("$filter === '' || el.dataset.search.includes($filter)")
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 251, Col: 139}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 252, Col: 139}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
@@ -430,7 +430,7 @@ func RecordsFragment(rows []recordRow) templ.Component {
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(recordSearchIndex(row))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 251, Col: 178}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 252, Col: 178}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -443,7 +443,7 @@ func RecordsFragment(rows []recordRow) templ.Component {
 				var templ_7745c5c3_Var22 string
 				templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(row.Record.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 252, Col: 74}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 253, Col: 74}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 				if templ_7745c5c3_Err != nil {
@@ -456,7 +456,7 @@ func RecordsFragment(rows []recordRow) templ.Component {
 				var templ_7745c5c3_Var23 string
 				templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(row.Record.Type)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 253, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 254, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 				if templ_7745c5c3_Err != nil {
@@ -469,7 +469,7 @@ func RecordsFragment(rows []recordRow) templ.Component {
 				var templ_7745c5c3_Var24 string
 				templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(recordValueText(row.Record))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 254, Col: 59}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 255, Col: 59}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 				if templ_7745c5c3_Err != nil {
@@ -482,7 +482,7 @@ func RecordsFragment(rows []recordRow) templ.Component {
 				var templ_7745c5c3_Var25 string
 				templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(row.Record.TTL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 255, Col: 46}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 256, Col: 46}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 				if templ_7745c5c3_Err != nil {
@@ -495,7 +495,7 @@ func RecordsFragment(rows []recordRow) templ.Component {
 				var templ_7745c5c3_Var26 string
 				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(row.Record.Zone)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 256, Col: 47}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 257, Col: 47}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 				if templ_7745c5c3_Err != nil {
@@ -508,7 +508,7 @@ func RecordsFragment(rows []recordRow) templ.Component {
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(row.Account)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 257, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 258, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {
@@ -523,6 +523,98 @@ func RecordsFragment(rows []recordRow) templ.Component {
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 40, "</tbody></table></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func UsersFragment(viewer *User, users []User) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var28 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var28 == nil {
+			templ_7745c5c3_Var28 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		if viewer == nil || viewer.Role != "admin" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<section id=\"users\"></section>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "<section id=\"users\" class=\"mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm\"><div class=\"border-b border-slate-200 px-5 py-4\"><h2 class=\"text-lg font-semibold text-slate-900\">Users</h2></div><div class=\"overflow-x-auto\"><table class=\"w-full text-left text-sm text-slate-700\"><thead class=\"bg-slate-50 text-xs uppercase tracking-wide text-slate-600\"><tr><th class=\"px-5 py-3\">Email</th><th class=\"px-5 py-3\">Role</th><th class=\"px-5 py-3\">Created</th></tr></thead> <tbody>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			if len(users) == 0 {
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 43, "<tr class=\"border-t border-slate-200\"><td class=\"px-5 py-4 text-slate-500\" colspan=\"3\">No users found.</td></tr>")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+			} else {
+				for _, u := range users {
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 44, "<tr class=\"border-t border-slate-200 bg-white hover:bg-slate-50\"><td class=\"px-5 py-4 font-medium text-slate-900\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var29 string
+					templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(u.Email)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 287, Col: 67}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 45, "</td><td class=\"px-5 py-4 uppercase\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var30 string
+					templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(u.Role)
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 288, Col: 49}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 46, "</td><td class=\"px-5 py-4\">")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					var templ_7745c5c3_Var31 string
+					templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(serverLastSyncText(u.CreatedAt))
+					if templ_7745c5c3_Err != nil {
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 289, Col: 64}
+					}
+					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+					templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 47, "</td></tr>")
+					if templ_7745c5c3_Err != nil {
+						return templ_7745c5c3_Err
+					}
+				}
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 48, "</tbody></table></div></section>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
 		return nil
 	})
@@ -544,25 +636,25 @@ func ClockFragment(now string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var28 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var28 == nil {
-			templ_7745c5c3_Var28 = templ.NopComponent
+		templ_7745c5c3_Var32 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var32 == nil {
+			templ_7745c5c3_Var32 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 41, "<div id=\"clock\" class=\"rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-700\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 49, "<div id=\"clock\" class=\"rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-700\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var29 string
-		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(now)
+		var templ_7745c5c3_Var33 string
+		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(now)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 268, Col: 97}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `views.templ`, Line: 301, Col: 97}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 42, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 50, "</div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

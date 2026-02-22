@@ -34,11 +34,17 @@ func main() {
 	}
 
 	app := dashboard.New(&http.Client{Timeout: 10 * time.Second}, 15*time.Second, db)
-	if err := app.BootstrapAdmin(
-		envOrDefault("GUI_ADMIN_EMAIL", "admin@local"),
-		envOrDefault("GUI_ADMIN_PASSWORD", "admin123"),
-	); err != nil {
+	if err := app.InitError(); err != nil {
 		log.Fatal(err)
+	}
+	adminEmail := strings.TrimSpace(os.Getenv("GUI_ADMIN_EMAIL"))
+	adminPassword := strings.TrimSpace(os.Getenv("GUI_ADMIN_PASSWORD"))
+	if adminEmail != "" && adminPassword != "" {
+		if err := app.BootstrapAdmin(adminEmail, adminPassword); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Printf("admin bootstrap skipped: set GUI_ADMIN_EMAIL and GUI_ADMIN_PASSWORD")
 	}
 	go app.RunSyncLoop(context.Background())
 

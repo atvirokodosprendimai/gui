@@ -3,7 +3,6 @@ package dashboard
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,24 +16,26 @@ func (a *App) handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(r) {
-		a.setFlash("admin role required")
-		a.notifyReadModelChanged()
+		a.setFlash(r, "admin role required")
+		a.notifyElementsChanged("flash")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	name := strings.TrimSpace(r.URL.Query().Get("name"))
-	baseURL := strings.TrimSpace(r.URL.Query().Get("url"))
-	token := strings.TrimSpace(r.URL.Query().Get("token"))
-	port := 8080
-	if p := strings.TrimSpace(r.URL.Query().Get("port")); p != "" {
-		if v, err := strconv.Atoi(p); err == nil {
-			port = v
-		}
+	var sig addServerSignals
+	if err := readDatastarSignals(r, &sig); err != nil {
+		a.setFlash(r, "invalid request payload")
+		a.notifyElementsChanged("flash")
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
+	name := trim(sig.ServerName)
+	baseURL := trim(sig.ServerURL)
+	token := trim(sig.ServerToken)
+	port := parseIntOrDefault(sig.ServerPort, 8080)
 
 	if name == "" || baseURL == "" {
-		a.setFlash("name and url are required")
-		a.notifyReadModelChanged()
+		a.setFlash(r, "name and url are required")
+		a.notifyElementsChanged("flash")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -42,8 +43,8 @@ func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 	id := nodeID(name, baseURL, port)
 	n := node{ID: id, Name: name, URL: baseURL, Port: port, Token: token}
 	if n.endpoint() == "" {
-		a.setFlash("invalid server URL")
-		a.notifyReadModelChanged()
+		a.setFlash(r, "invalid server URL")
+		a.notifyElementsChanged("flash")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -53,15 +54,15 @@ func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 	a.mu.Unlock()
 
 	a.syncOnce()
-	a.setFlash("server added: " + name)
-	a.notifyReadModelChanged()
+	a.setFlash(r, "server added: "+name)
+	a.notifyElementsChanged("flash")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) handleDeleteServer(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(r) {
-		a.setFlash("admin role required")
-		a.notifyReadModelChanged()
+		a.setFlash(r, "admin role required")
+		a.notifyElementsChanged("flash")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -70,30 +71,32 @@ func (a *App) handleDeleteServer(w http.ResponseWriter, r *http.Request) {
 	delete(a.nodes, id)
 	a.mu.Unlock()
 
-	a.setFlash("server removed")
-	a.notifyReadModelChanged()
+	a.setFlash(r, "server removed")
+	a.notifyElementsChanged("flash", "servers", "overview")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
-	domain := normalizeFQDN(strings.TrimSpace(r.URL.Query().Get("domain")))
-	ip := strings.TrimSpace(r.URL.Query().Get("ip"))
-	rType := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("type")))
-	zone := strings.TrimSpace(r.URL.Query().Get("zone"))
-	target := strings.TrimSpace(r.URL.Query().Get("target"))
-	text := strings.TrimSpace(r.URL.Query().Get("text"))
-	account := strings.TrimSpace(r.URL.Query().Get("account"))
-	viewer := currentUser(r)
-	ttl := 0
-	if t := strings.TrimSpace(r.URL.Query().Get("ttl")); t != "" {
-		if v, err := strconv.Atoi(t); err == nil {
-			ttl = v
-		}
+	var sig parkDomainSignals
+	if err := readDatastarSignals(r, &sig); err != nil {
+		a.setFlash(r, "invalid request payload")
+		a.notifyElementsChanged("flash")
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
+	domain := normalizeFQDN(trim(sig.Domain))
+	ip := trim(sig.RecordIP)
+	rType := strings.ToUpper(trim(sig.RecordType))
+	zone := trim(sig.RecordZone)
+	target := trim(sig.RecordTarget)
+	text := trim(sig.RecordText)
+	account := trim(sig.DomainAccount)
+	viewer := currentUser(r)
+	ttl := parseIntOrDefault(sig.RecordTTL, 0)
 
 	if domain == "" {
-		a.setFlash("domain is required")
-		a.notifyReadModelChanged()
+		a.setFlash(r, "domain is required")
+		a.notifyElementsChanged("flash")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -112,13 +115,31 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 	a.dashboard[recordKey(rec)] = rec
 	if viewer != nil && viewer.Role != roleAdmin {
 		a.domainOwners[normalizeFQDN(rec.Name)] = viewer.Email
-		_ = a.saveDomainOwner(normalizeFQDN(rec.Name), viewer.Email)
+		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), viewer.Email); err != nil {
+			a.mu.Unlock()
+			a.setFlash(r, "failed to save domain owner")
+			a.notifyElementsChanged("flash")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	} else if account != "" {
 		a.domainOwners[normalizeFQDN(rec.Name)] = account
-		_ = a.saveDomainOwner(normalizeFQDN(rec.Name), account)
+		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), account); err != nil {
+			a.mu.Unlock()
+			a.setFlash(r, "failed to save domain owner")
+			a.notifyElementsChanged("flash")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	} else if _, ok := a.domainOwners[normalizeFQDN(rec.Name)]; !ok {
 		a.domainOwners[normalizeFQDN(rec.Name)] = "unassigned"
-		_ = a.saveDomainOwner(normalizeFQDN(rec.Name), "unassigned")
+		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), "unassigned"); err != nil {
+			a.mu.Unlock()
+			a.setFlash(r, "failed to save domain owner")
+			a.notifyElementsChanged("flash")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 	nodes := make([]node, 0, len(a.nodes))
 	for _, n := range a.nodes {
@@ -141,17 +162,24 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 
 	a.syncOnce()
 	if failures > 0 {
-		a.setFlash(fmt.Sprintf("parked %s with %d server errors", domain, failures))
+		a.setFlash(r, fmt.Sprintf("parked %s with %d server errors", domain, failures))
 	} else {
-		a.setFlash("parked: " + domain)
+		a.setFlash(r, "parked: "+domain)
 	}
-	a.notifyReadModelChanged()
+	a.notifyElementsChanged("flash")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
-	domain := normalizeFQDN(strings.TrimSpace(r.URL.Query().Get("domain")))
-	toAccount := strings.TrimSpace(r.URL.Query().Get("to_account"))
+	var sig transferDomainSignals
+	if err := readDatastarSignals(r, &sig); err != nil {
+		a.setFlash(r, "invalid request payload")
+		a.notifyElementsChanged("flash")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	domain := normalizeFQDN(trim(sig.TransferDomain))
+	toAccount := trim(sig.TransferToAccount)
 	viewer := currentUser(r)
 
 	if viewer == nil {
@@ -160,8 +188,8 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if domain == "" || toAccount == "" {
-		a.setFlash("domain and target account are required")
-		a.notifyReadModelChanged()
+		a.setFlash(r, "domain and target account are required")
+		a.notifyElementsChanged("flash")
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -171,8 +199,8 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 		owner := a.domainOwners[domain]
 		a.mu.RUnlock()
 		if owner != viewer.Email {
-			a.setFlash("you can transfer only your own parked domains")
-			a.notifyReadModelChanged()
+			a.setFlash(r, "you can transfer only your own parked domains")
+			a.notifyElementsChanged("flash")
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
@@ -180,8 +208,8 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 
 	if a.db != nil {
 		if _, err := a.lookupUserByEmail(toAccount); err != nil {
-			a.setFlash("target account does not exist")
-			a.notifyReadModelChanged()
+			a.setFlash(r, "target account does not exist")
+			a.notifyElementsChanged("flash")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -190,44 +218,56 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 	a.mu.Lock()
 	a.domainOwners[domain] = toAccount
 	a.mu.Unlock()
-	_ = a.saveDomainOwner(domain, toAccount)
+	if err := a.saveDomainOwner(domain, toAccount); err != nil {
+		a.setFlash(r, "failed to persist domain transfer")
+		a.notifyElementsChanged("flash")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	a.setFlash(fmt.Sprintf("transferred %s to account %s", domain, toAccount))
-	a.notifyReadModelChanged()
+	a.setFlash(r, fmt.Sprintf("transferred %s to account %s", domain, toAccount))
+	a.notifyElementsChanged("flash", "records")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) handleSyncNow(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(r) {
-		a.setFlash("admin role required")
-		a.notifyReadModelChanged()
+		a.setFlash(r, "admin role required")
+		a.notifyElementsChanged("flash")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 	a.syncOnce()
-	a.setFlash("sync complete at " + time.Now().UTC().Format(time.RFC3339))
-	a.notifyReadModelChanged()
+	a.setFlash(r, "sync complete at "+time.Now().UTC().Format(time.RFC3339))
+	a.notifyElementsChanged("flash")
 	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *App) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	if !isAdmin(r) {
-		a.setFlash("admin role required")
-		a.notifyReadModelChanged()
+		a.setFlash(r, "admin role required")
+		a.notifyElementsChanged("flash")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	email := strings.TrimSpace(r.URL.Query().Get("email"))
-	password := strings.TrimSpace(r.URL.Query().Get("password"))
-	role := strings.TrimSpace(r.URL.Query().Get("role"))
+	var sig createUserSignals
+	if err := readDatastarSignals(r, &sig); err != nil {
+		a.setFlash(r, "invalid request payload")
+		a.notifyElementsChanged("flash")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	email := trim(sig.NewUserEmail)
+	password := trim(sig.NewUserPassword)
+	role := trim(sig.NewUserRole)
 	if role == "" {
 		role = roleUser
 	}
 	if err := a.CreateUser(email, password, role); err != nil {
-		a.setFlash("failed to create user: " + err.Error())
+		a.setFlash(r, "failed to create user: "+err.Error())
 	} else {
-		a.setFlash("user created: " + strings.ToLower(email))
+		a.setFlash(r, "user created: "+strings.ToLower(email))
 	}
-	a.notifyReadModelChanged()
+	a.notifyElementsChanged("flash", "users")
 	w.WriteHeader(http.StatusNoContent)
 }

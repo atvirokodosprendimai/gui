@@ -25,7 +25,7 @@ func serverLastSyncText(t time.Time) string {
 }
 
 func deleteServerAction(id string) string {
-	return "@get('/ui/server/delete/" + url.PathEscape(id) + "')"
+	return "@post('/ui/server/delete/" + url.PathEscape(id) + "')"
 }
 
 func recordValueText(rec dnsRecord) string {
