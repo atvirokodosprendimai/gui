@@ -11,23 +11,17 @@ import (
 )
 
 func (a *App) handleIndex(w http.ResponseWriter, r *http.Request) {
-	renderTempl(w, r, http.StatusOK, IndexPage())
-}
-
-func (a *App) handleOverviewFragment(w http.ResponseWriter, r *http.Request) {
-	nodeCount, onlineCount, recordCount := a.overviewCounts()
-	renderTempl(w, r, http.StatusOK, OverviewFragment(nodeCount, onlineCount, recordCount))
-}
-
-func (a *App) handleServersFragment(w http.ResponseWriter, r *http.Request) {
-	renderTempl(w, r, http.StatusOK, ServersFragment(a.sortedNodes()))
-}
-
-func (a *App) handleRecordsFragment(w http.ResponseWriter, r *http.Request) {
-	renderTempl(w, r, http.StatusOK, RecordsFragment(a.filteredRecordRows("")))
+	u := currentUser(r)
+	renderTempl(w, r, http.StatusOK, IndexPage(u.Email, u.Role))
 }
 
 func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
+	if !isAdmin(r) {
+		a.setFlash("admin role required")
+		a.notifyReadModelChanged()
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	name := strings.TrimSpace(r.URL.Query().Get("name"))
 	baseURL := strings.TrimSpace(r.URL.Query().Get("url"))
 	token := strings.TrimSpace(r.URL.Query().Get("token"))
@@ -65,6 +59,12 @@ func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleDeleteServer(w http.ResponseWriter, r *http.Request) {
+	if !isAdmin(r) {
+		a.setFlash("admin role required")
+		a.notifyReadModelChanged()
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	id := chi.URLParam(r, "id")
 	a.mu.Lock()
 	delete(a.nodes, id)
@@ -83,6 +83,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 	target := strings.TrimSpace(r.URL.Query().Get("target"))
 	text := strings.TrimSpace(r.URL.Query().Get("text"))
 	account := strings.TrimSpace(r.URL.Query().Get("account"))
+	viewer := currentUser(r)
 	ttl := 0
 	if t := strings.TrimSpace(r.URL.Query().Get("ttl")); t != "" {
 		if v, err := strconv.Atoi(t); err == nil {
@@ -109,10 +110,15 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 
 	a.mu.Lock()
 	a.dashboard[recordKey(rec)] = rec
-	if account != "" {
+	if viewer != nil && viewer.Role != roleAdmin {
+		a.domainOwners[normalizeFQDN(rec.Name)] = viewer.Email
+		_ = a.saveDomainOwner(normalizeFQDN(rec.Name), viewer.Email)
+	} else if account != "" {
 		a.domainOwners[normalizeFQDN(rec.Name)] = account
+		_ = a.saveDomainOwner(normalizeFQDN(rec.Name), account)
 	} else if _, ok := a.domainOwners[normalizeFQDN(rec.Name)]; !ok {
 		a.domainOwners[normalizeFQDN(rec.Name)] = "unassigned"
+		_ = a.saveDomainOwner(normalizeFQDN(rec.Name), "unassigned")
 	}
 	nodes := make([]node, 0, len(a.nodes))
 	for _, n := range a.nodes {
@@ -146,6 +152,12 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 	domain := normalizeFQDN(strings.TrimSpace(r.URL.Query().Get("domain")))
 	toAccount := strings.TrimSpace(r.URL.Query().Get("to_account"))
+	viewer := currentUser(r)
+
+	if viewer == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
 	if domain == "" || toAccount == "" {
 		a.setFlash("domain and target account are required")
@@ -154,9 +166,31 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if viewer.Role != roleAdmin {
+		a.mu.RLock()
+		owner := a.domainOwners[domain]
+		a.mu.RUnlock()
+		if owner != viewer.Email {
+			a.setFlash("you can transfer only your own parked domains")
+			a.notifyReadModelChanged()
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+	}
+
+	if a.db != nil {
+		if _, err := a.lookupUserByEmail(toAccount); err != nil {
+			a.setFlash("target account does not exist")
+			a.notifyReadModelChanged()
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
+
 	a.mu.Lock()
 	a.domainOwners[domain] = toAccount
 	a.mu.Unlock()
+	_ = a.saveDomainOwner(domain, toAccount)
 
 	a.setFlash(fmt.Sprintf("transferred %s to account %s", domain, toAccount))
 	a.notifyReadModelChanged()
@@ -164,8 +198,36 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleSyncNow(w http.ResponseWriter, r *http.Request) {
+	if !isAdmin(r) {
+		a.setFlash("admin role required")
+		a.notifyReadModelChanged()
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
 	a.syncOnce()
 	a.setFlash("sync complete at " + time.Now().UTC().Format(time.RFC3339))
+	a.notifyReadModelChanged()
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) handleCreateUser(w http.ResponseWriter, r *http.Request) {
+	if !isAdmin(r) {
+		a.setFlash("admin role required")
+		a.notifyReadModelChanged()
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+	email := strings.TrimSpace(r.URL.Query().Get("email"))
+	password := strings.TrimSpace(r.URL.Query().Get("password"))
+	role := strings.TrimSpace(r.URL.Query().Get("role"))
+	if role == "" {
+		role = roleUser
+	}
+	if err := a.CreateUser(email, password, role); err != nil {
+		a.setFlash("failed to create user: " + err.Error())
+	} else {
+		a.setFlash("user created: " + strings.ToLower(email))
+	}
 	a.notifyReadModelChanged()
 	w.WriteHeader(http.StatusNoContent)
 }

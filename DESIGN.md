@@ -13,7 +13,8 @@
 - Backend: Go + `github.com/go-chi/chi/v5`
 - Frontend: Datastar (CDN), server-rendered fragments, reactive `data-*` attributes
 - HTML rendering: `templ` components (`github.com/a-h/templ`)
-- State storage: in-memory maps (servers and normalized DNS records)
+- UI toolkit: Flowbite + Tailwind CSS (CDN in current implementation)
+- Persistence: SQLite (modernc, no cgo) via GORM + SQL migrations via Goose
 
 ## Project structure (modular)
 
@@ -37,6 +38,10 @@
   - shared response rendering helpers that write templ output directly to `http.ResponseWriter`
 - `internal/dashboard/cqrs_stream.go`
   - single long-lived CQRS SSE endpoint for read-model and clock Datastar patches
+- `internal/dashboard/auth.go` and `internal/dashboard/auth_handlers.go`
+  - user model, session auth, role checks, login/logout handlers
+- `migrations/`
+  - Goose SQL migrations (users, sessions, domain ownership)
 
 This split keeps responsibilities focused and follows Go best-practice boundaries: thin handlers, explicit data structs, and isolated transport/client code.
 
@@ -47,6 +52,12 @@ This split keeps responsibilities focused and follows Go best-practice boundarie
   - `templ generate ./internal/dashboard`
 - shortcut:
   - `go generate ./internal/dashboard`
+
+## Migration notes
+
+- Database schema changes are managed only via Goose SQL migrations in `migrations/`.
+- GORM auto-migrations are intentionally not used.
+- Startup runs `goose up` against the configured SQLite database.
 
 ## Data model
 
@@ -59,6 +70,11 @@ This split keeps responsibilities focused and follows Go best-practice boundarie
 - **Domain ownership**
   - dashboard-local `domain -> account` mapping
   - used for account visibility in records and parked-domain transfer flow
+- **User**
+  - `email`, `password_hash`, `role`
+  - supported roles: `admin`, `user`
+- **Session**
+  - cookie-backed server-side sessions stored in SQLite
 
 ## API contract handling (required constraints)
 
@@ -124,11 +140,17 @@ This provides a reactive operator experience without full SPA complexity.
 ## CQRS flow
 
 - **Command side (writes)**
-  - `/ui/server/add`, `/ui/server/delete/{id}`, `/ui/domain/park`, `/ui/domain/transfer`, `/ui/sync/now`
+  - `/ui/server/add`, `/ui/server/delete/{id}`, `/ui/domain/park`, `/ui/domain/transfer`, `/ui/users/create`, `/ui/sync/now`
   - handlers mutate state and return `204 No Content`
 - **Query side (reads)**
   - `/any/cqrs` keeps one SSE connection per UI session
   - server pushes read-model patches on state-change notifications and clock ticks
+
+Current implementation is intentionally simple:
+
+- in-process notifier fan-out inside the web service (no NATS projector yet)
+- single SSE stream per UI session
+- no periodic polling endpoints
 
 This avoids browser connection pressure on HTTP/1.1 and keeps update traffic on a single stream.
 
@@ -143,16 +165,14 @@ This avoids browser connection pressure on HTTP/1.1 and keeps update traffic on 
 ## Routing
 
 - Page: `/`
+- Login: `/login`, `/auth/login`, `/auth/logout`
 - Health: `/healthz`
-- UI fragments:
-  - `/fragments/overview`
-  - `/fragments/servers`
-  - `/fragments/records`
 - UI actions:
   - `/ui/server/add`
   - `/ui/server/delete/{id}`
   - `/ui/domain/park`
   - `/ui/domain/transfer`
+  - `/ui/users/create` (admin only)
   - `/ui/sync/now`
 - SSE:
   - `/any/cqrs` long-lived Datastar SSE stream for full read-model updates and live clock patches
@@ -160,9 +180,12 @@ This avoids browser connection pressure on HTTP/1.1 and keeps update traffic on 
 ## Security and operational notes
 
 - Server tokens are stored in process memory only.
-- Dashboard currently has no auth layer (intended for internal/VPN use).
-- Since persistence is in-memory, restart clears dashboard state.
-- Recommended next step in production: persist servers/records in SQLite/Postgres and add role-based auth.
+- Dashboard now uses cookie-based auth with server-side sessions in SQLite.
+- Admin role can manage servers, sync, and create users.
+- User role can park domains and transfer domains they own.
+- Bootstrap admin account is created on first run from env:
+  - `GUI_ADMIN_EMAIL`
+  - `GUI_ADMIN_PASSWORD`
 
 ## Testing policy
 

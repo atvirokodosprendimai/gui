@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# Build outputs
+/gui
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace/cache files
+coverage.out
+
+# SQLite runtime data
+*.db
+*.db-shm
+*.db-wal
+
+# Environment / secrets
+.env
+.env.*
+
+# Node tooling (if used for FE assets)
+node_modules/

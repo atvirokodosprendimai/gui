@@ -1,10 +1,9 @@
 package dashboard
 
 import (
-	"fmt"
+	"context"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/a-h/templ"
@@ -64,33 +63,58 @@ func (a *App) writeReadModelPatch(w io.Writer, r *http.Request, consumeFlash boo
 		FlashFragment(flash),
 		OverviewFragment(nodeCount, onlineCount, recordCount),
 		ServersFragment(a.sortedNodes()),
-		RecordsFragment(a.filteredRecordRows("")),
+		RecordsFragment(a.filteredRecordRows("", currentUser(r))),
 	)
-	html, err := renderComponentToString(r, component)
-	if err != nil {
-		return err
-	}
-	return writeDatastarPatchElements(w, html)
+	return writeDatastarPatchComponent(w, r.Context(), component)
 }
 
 func (a *App) writeClockPatch(w io.Writer, r *http.Request, now time.Time) error {
-	html, err := renderComponentToString(r, ClockFragment(clockText(now)))
-	if err != nil {
-		return err
-	}
-	return writeDatastarPatchElements(w, html)
+	return writeDatastarPatchComponent(w, r.Context(), ClockFragment(clockText(now)))
 }
 
-func writeDatastarPatchElements(w io.Writer, elements string) error {
-	lines := strings.Split(elements, "\n")
+func writeDatastarPatchComponent(w io.Writer, ctx context.Context, c templ.Component) error {
 	if _, err := io.WriteString(w, "event: datastar-patch-elements\n"); err != nil {
 		return err
 	}
-	for _, line := range lines {
-		if _, err := fmt.Fprintf(w, "data: elements %s\n", line); err != nil {
-			return err
+	pw := &datastarElementsWriter{dst: w, atLineStart: true}
+	if err := c.Render(ctx, pw); err != nil {
+		return err
+	}
+	return pw.finish()
+}
+
+func writeDatastarPatchElements(w io.Writer, elements string) error {
+	return writeDatastarPatchComponent(w, context.Background(), templ.Raw(elements))
+}
+
+type datastarElementsWriter struct {
+	dst         io.Writer
+	atLineStart bool
+}
+
+func (w *datastarElementsWriter) Write(p []byte) (int, error) {
+	for i, b := range p {
+		if w.atLineStart {
+			if _, err := io.WriteString(w.dst, "data: elements "); err != nil {
+				return i, err
+			}
+			w.atLineStart = false
+		}
+		if _, err := w.dst.Write([]byte{b}); err != nil {
+			return i, err
+		}
+		if b == '\n' {
+			w.atLineStart = true
 		}
 	}
-	_, err := io.WriteString(w, "\n")
+	return len(p), nil
+}
+
+func (w *datastarElementsWriter) finish() error {
+	if w.atLineStart {
+		_, err := io.WriteString(w.dst, "\n")
+		return err
+	}
+	_, err := io.WriteString(w.dst, "\n\n")
 	return err
 }

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
+	"gorm.io/gorm"
 )
 
 type App struct {
@@ -19,11 +19,12 @@ type App struct {
 	domainOwners map[string]string
 	watchers     map[chan struct{}]struct{}
 	client       *http.Client
+	db           *gorm.DB
 	syncInterval time.Duration
 	flash        string
 }
 
-func New(client *http.Client, syncInterval time.Duration) *App {
+func New(client *http.Client, syncInterval time.Duration, dbs ...*gorm.DB) *App {
 	if client == nil {
 		client = &http.Client{Timeout: 10 * time.Second}
 	}
@@ -31,34 +32,46 @@ func New(client *http.Client, syncInterval time.Duration) *App {
 		syncInterval = 15 * time.Second
 	}
 
-	return &App{
+	var db *gorm.DB
+	if len(dbs) > 0 {
+		db = dbs[0]
+	}
+
+	app := &App{
 		nodes:        make(map[string]node),
 		dashboard:    make(map[string]dnsRecord),
 		domainOwners: make(map[string]string),
 		watchers:     make(map[chan struct{}]struct{}),
 		client:       client,
+		db:           db,
 		syncInterval: syncInterval,
 	}
+	_ = app.loadDomainOwners()
+	return app
 }
 
 func (a *App) Routes() http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", a.handleIndex)
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true}`))
 	})
 
-	r.Get("/fragments/overview", a.handleOverviewFragment)
-	r.Get("/fragments/servers", a.handleServersFragment)
-	r.Get("/fragments/records", a.handleRecordsFragment)
+	r.Get("/login", a.handleLoginPage)
+	r.Post("/auth/login", a.handleLogin)
+	r.Get("/auth/logout", a.handleLogout)
 
-	r.Get("/ui/server/add", a.handleAddServer)
-	r.Get("/ui/server/delete/{id}", a.handleDeleteServer)
-	r.Get("/ui/domain/park", a.handleParkDomain)
-	r.Get("/ui/domain/transfer", a.handleTransferDomain)
-	r.Get("/ui/sync/now", a.handleSyncNow)
-	r.Get("/any/cqrs", a.handleCQRSStream)
+	r.Group(func(pr chi.Router) {
+		pr.Use(a.requireAuth)
+		pr.Get("/", a.handleIndex)
+		pr.Get("/ui/server/add", a.handleAddServer)
+		pr.Get("/ui/server/delete/{id}", a.handleDeleteServer)
+		pr.Get("/ui/domain/park", a.handleParkDomain)
+		pr.Get("/ui/domain/transfer", a.handleTransferDomain)
+		pr.Get("/ui/users/create", a.handleCreateUser)
+		pr.Get("/ui/sync/now", a.handleSyncNow)
+		pr.Get("/any/cqrs", a.handleCQRSStream)
+	})
 
 	return r
 }
@@ -75,16 +88,6 @@ func (a *App) RunSyncLoop(ctx context.Context) {
 			a.syncOnce()
 		}
 	}
-}
-
-func (a *App) writeCombinedFragments(w http.ResponseWriter, r *http.Request, filter string) {
-	nodeCount, onlineCount, recordCount := a.overviewCounts()
-	renderTempl(w, r, http.StatusOK, templ.Join(
-		FlashFragment(a.consumeFlash()),
-		OverviewFragment(nodeCount, onlineCount, recordCount),
-		ServersFragment(a.sortedNodes()),
-		RecordsFragment(a.filteredRecordRows(filter)),
-	))
 }
 
 func (a *App) setFlash(msg string) {
@@ -161,7 +164,7 @@ func (a *App) sortedNodes() []node {
 	return nodes
 }
 
-func (a *App) filteredRecordRows(filter string) []recordRow {
+func (a *App) filteredRecordRows(filter string, viewer *User) []recordRow {
 	filter = strings.ToLower(strings.TrimSpace(filter))
 
 	a.mu.RLock()
@@ -190,6 +193,9 @@ func (a *App) filteredRecordRows(filter string) []recordRow {
 		owner := owners[normalizeFQDN(rec.Name)]
 		if owner == "" {
 			owner = "unassigned"
+		}
+		if viewer != nil && viewer.Role != roleAdmin && owner != viewer.Email {
+			continue
 		}
 		line := strings.ToLower(rec.Name + " " + rec.Type + " " + recordValue(rec) + " " + rec.Zone + " " + owner)
 		if filter == "" || strings.Contains(line, filter) {

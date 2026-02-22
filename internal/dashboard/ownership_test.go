@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,7 +15,7 @@ func TestFilteredRecordRows_IncludeAccount(t *testing.T) {
 	a.dashboard[recordKey(dnsRecord{Name: "app.example.com", Type: "A", IP: "198.51.100.10", Zone: "example.com", TTL: 60})] = normalizeRecord(dnsRecord{Name: "app.example.com", Type: "A", IP: "198.51.100.10", Zone: "example.com", TTL: 60})
 	a.domainOwners["app.example.com."] = "account-a"
 
-	rows := a.filteredRecordRows("account-a")
+	rows := a.filteredRecordRows("account-a", nil)
 	if len(rows) != 1 {
 		t.Fatalf("rows = %d, want 1", len(rows))
 	}
@@ -27,15 +28,17 @@ func TestHandleTransferDomain(t *testing.T) {
 	t.Parallel()
 
 	a := New(nil, 0)
-	r := a.Routes()
-
 	q := url.Values{}
 	q.Set("domain", "app.example.com")
 	q.Set("to_account", "account-b")
 
-	req := httptest.NewRequest(http.MethodGet, "/ui/domain/transfer?"+q.Encode(), nil)
+	a.domainOwners["app.example.com."] = "admin@local"
+
+	req := httptest.NewRequest(http.MethodGet, "/ui/domain/transfer?"+q.Encode(), nil).WithContext(
+		context.WithValue(context.Background(), userContextKey{}, &User{Email: "admin@local", Role: roleAdmin}),
+	)
 	rr := httptest.NewRecorder()
-	r.ServeHTTP(rr, req)
+	a.handleTransferDomain(rr, req)
 
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("status = %d, want %d", rr.Code, http.StatusNoContent)
