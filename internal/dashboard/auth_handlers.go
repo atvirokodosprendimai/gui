@@ -17,7 +17,7 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	email := strings.TrimSpace(r.Form.Get("email"))
 	password := r.Form.Get("password")
-	key := loginKey(r, email)
+	key := a.loginKey(r, email)
 	if !a.allowLogin(key) {
 		renderTempl(w, r, http.StatusTooManyRequests, LoginPage("too many attempts, retry later"))
 		return

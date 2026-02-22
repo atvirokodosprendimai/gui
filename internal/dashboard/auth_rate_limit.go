@@ -13,8 +13,11 @@ type loginState struct {
 	LastSeen     time.Time
 }
 
-func loginKey(r *http.Request, email string) string {
-	ip := firstIP(strings.TrimSpace(r.Header.Get("X-Forwarded-For")))
+func (a *App) loginKey(r *http.Request, email string) string {
+	ip := ""
+	if a.trustProxy {
+		ip = firstIP(strings.TrimSpace(r.Header.Get("X-Forwarded-For")))
+	}
 	if ip == "" {
 		host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
 		if err == nil {

@@ -51,10 +51,16 @@ func (a *App) handleCQRSStream(w http.ResponseWriter, r *http.Request) {
 			}
 			switch upd.Scope {
 			case scopeSession:
+				if upd.SessionID == "" {
+					continue
+				}
 				if upd.SessionID != "" && upd.SessionID != clientSessionToken {
 					continue
 				}
 			case scopeUser:
+				if upd.UserID == "" {
+					continue
+				}
 				if upd.UserID != "" && upd.UserID != clientUserID {
 					continue
 				}

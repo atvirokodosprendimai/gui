@@ -53,7 +53,7 @@ func main() {
 		if err := app.ConfigureNATS(natsURL); err != nil {
 			log.Fatal(err)
 		}
-		log.Printf("nats notifier enabled: %s", natsURL)
+		log.Printf("nats notifier enabled")
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

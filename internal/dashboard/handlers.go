@@ -186,7 +186,7 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	domain := normalizeFQDN(trim(sig.TransferDomain))
-	toAccount := trim(sig.TransferToAccount)
+	toAccount := strings.ToLower(trim(sig.TransferToAccount))
 	viewer := currentUser(r)
 
 	if viewer == nil {
@@ -222,15 +222,15 @@ func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	a.mu.Lock()
-	a.domainOwners[domain] = toAccount
-	a.mu.Unlock()
 	if err := a.saveDomainOwner(domain, toAccount); err != nil {
 		a.setFlash(r, "failed to persist domain transfer")
 		a.notifySessionElements(r, "flash")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	a.mu.Lock()
+	a.domainOwners[domain] = toAccount
+	a.mu.Unlock()
 
 	a.setFlash(r, fmt.Sprintf("transferred %s to account %s", domain, toAccount))
 	a.notifySessionElements(r, "flash")
@@ -273,7 +273,7 @@ func (a *App) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		role = roleUser
 	}
 	if err := a.CreateUser(email, password, role); err != nil {
-		a.setFlash(r, "failed to create user: "+err.Error())
+		a.setFlash(r, "failed to create user")
 	} else {
 		a.setFlash(r, "user created: "+strings.ToLower(email))
 	}

@@ -116,7 +116,7 @@ Outcome: if dashboard lacks records, they are imported; if a server lacks record
 ## Frontend behavior (Datastar)
 
 - Datastar signals back form inputs (`data-bind:*`).
-- Actions use Datastar `@get(...)` for:
+- Actions use Datastar `@post(...)` for command endpoints:
   - adding/removing servers
   - parking domains
   - transferring parked domains between accounts
@@ -146,11 +146,14 @@ This provides a reactive operator experience without full SPA complexity.
   - `/any/cqrs` keeps one SSE connection per UI session
   - server pushes read-model patches on state-change notifications and clock ticks
 
-Current implementation is intentionally simple:
+Current implementation:
 
-- in-process notifier fan-out inside the web service (no NATS projector yet)
 - single SSE stream per UI session
 - no periodic polling endpoints
+- optional distributed updater over NATS subjects:
+  - `fe.update.global`
+  - `fe.update.user.<user_id>`
+  - `fe.update.session.<session_id>`
 
 This avoids browser connection pressure on HTTP/1.1 and keeps update traffic on a single stream.
 
@@ -159,13 +162,13 @@ This avoids browser connection pressure on HTTP/1.1 and keeps update traffic on 
 - Park flow accepts optional owner account (`account` query parameter).
 - Transfer endpoint updates ownership mapping only (DNS nodes do not store account ownership).
 - Transfer route:
-  - `GET /ui/domain/transfer?domain=<fqdn>&to_account=<account>`
+  - `POST /ui/domain/transfer` (Datastar signals payload)
 - Records table includes an account column sourced from ownership mapping.
 
 ## Routing
 
 - Page: `/`
-- Login: `/login`, `/auth/login`, `/auth/logout`
+- Login: `/login`, `/auth/login`, `/auth/logout` (logout is POST)
 - Health: `/healthz`
 - UI actions:
   - `/ui/server/add`

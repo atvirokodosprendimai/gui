@@ -63,6 +63,9 @@ func (a *App) ConfigureNATS(url string) error {
 		if strings.TrimSpace(upd.Element) == "" {
 			return
 		}
+		if !isValidScopedUpdate(upd) {
+			return
+		}
 		a.fanoutUpdate(upd)
 	}
 
@@ -96,6 +99,9 @@ func (a *App) emitUpdate(upd uiUpdate) {
 	if upd.Scope == "" {
 		upd.Scope = scopeGlobal
 	}
+	if !isValidScopedUpdate(upd) {
+		return
+	}
 
 	if a.natsBridge == nil || a.natsBridge.nc == nil {
 		a.fanoutUpdate(upd)
@@ -106,7 +112,11 @@ func (a *App) emitUpdate(upd uiUpdate) {
 	if err != nil {
 		return
 	}
-	_ = a.natsBridge.nc.Publish(subjectForUpdate(upd), b)
+	subject := subjectForUpdate(upd)
+	if subject == "" {
+		return
+	}
+	_ = a.natsBridge.nc.Publish(subject, b)
 }
 
 func (a *App) fanoutUpdate(upd uiUpdate) {
@@ -142,16 +152,27 @@ func subjectForUpdate(upd uiUpdate) string {
 	switch upd.Scope {
 	case scopeUser:
 		if strings.TrimSpace(upd.UserID) == "" {
-			return subjectFEUpdateGlobal
+			return ""
 		}
 		return fmt.Sprintf("fe.update.user.%s", sanitizeSubjectToken(upd.UserID))
 	case scopeSession:
 		if strings.TrimSpace(upd.SessionID) == "" {
-			return subjectFEUpdateGlobal
+			return ""
 		}
 		return fmt.Sprintf("fe.update.session.%s", sanitizeSubjectToken(upd.SessionID))
 	default:
 		return subjectFEUpdateGlobal
+	}
+}
+
+func isValidScopedUpdate(upd uiUpdate) bool {
+	switch upd.Scope {
+	case scopeUser:
+		return strings.TrimSpace(upd.UserID) != ""
+	case scopeSession:
+		return strings.TrimSpace(upd.SessionID) != ""
+	default:
+		return true
 	}
 }
 
