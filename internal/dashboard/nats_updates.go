@@ -167,12 +167,14 @@ func subjectForUpdate(upd uiUpdate) string {
 
 func isValidScopedUpdate(upd uiUpdate) bool {
 	switch upd.Scope {
+	case "", scopeGlobal:
+		return true
 	case scopeUser:
 		return strings.TrimSpace(upd.UserID) != ""
 	case scopeSession:
 		return strings.TrimSpace(upd.SessionID) != ""
 	default:
-		return true
+		return false
 	}
 }
 
