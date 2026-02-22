@@ -51,3 +51,37 @@ func TestNodeEndpoint(t *testing.T) {
 		t.Fatalf("endpoint() = %q, want %q", got, want)
 	}
 }
+
+func TestValidateDNSRecordInput(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		rec     dnsRecord
+		wantErr bool
+	}{
+		{name: "valid A", rec: dnsRecord{Name: "example.com", Type: "A", IP: "198.51.100.10", TTL: 60}},
+		{name: "invalid A", rec: dnsRecord{Name: "example.com", Type: "A", IP: "bad"}, wantErr: true},
+		{name: "invalid AAAA", rec: dnsRecord{Name: "example.com", Type: "AAAA", IP: "198.51.100.10"}, wantErr: true},
+		{name: "valid TXT", rec: dnsRecord{Name: "example.com", Type: "TXT", Text: "hello"}},
+		{name: "missing TXT", rec: dnsRecord{Name: "example.com", Type: "TXT"}, wantErr: true},
+		{name: "valid CNAME", rec: dnsRecord{Name: "example.com", Type: "CNAME", Target: "target.example.net"}},
+		{name: "missing CNAME target", rec: dnsRecord{Name: "example.com", Type: "CNAME"}, wantErr: true},
+		{name: "unsupported type", rec: dnsRecord{Name: "example.com", Type: "SRV"}, wantErr: true},
+		{name: "ttl too high", rec: dnsRecord{Name: "example.com", Type: "A", IP: "198.51.100.10", TTL: maxTTL + 1}, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			err := validateDNSRecordInput(tt.rec)
+			if tt.wantErr && err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}

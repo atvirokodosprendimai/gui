@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -46,6 +47,7 @@ func (a *App) handleCQRSStream(w http.ResponseWriter, r *http.Request) {
 		case <-sse.Context().Done():
 			return
 		case upd := <-watcher:
+			receivedAt := time.Now().UTC()
 			if upd.Subject != "" && upd.Subject != subjectFEUpdate {
 				continue
 			}
@@ -70,6 +72,12 @@ func (a *App) handleCQRSStream(w http.ResponseWriter, r *http.Request) {
 			}
 			if err := a.patchElement(sse, r, upd.Element, true); err != nil {
 				return
+			}
+			if upd.EmittedAt > 0 {
+				lag := receivedAt.Sub(time.UnixMilli(upd.EmittedAt))
+				if lag >= 0 {
+					log.Printf("cqrs patch element=%s scope=%s lag_ms=%d", upd.Element, upd.Scope, lag.Milliseconds())
+				}
 			}
 		case now := <-ticker.C:
 			if err := a.patchClock(sse, now.UTC()); err != nil {

@@ -119,6 +119,12 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 		Text:   text,
 		TTL:    ttl,
 	})
+	if err := validateDNSRecordInput(rec); err != nil {
+		a.setFlash(r, err.Error())
+		a.notifySessionElements(r, "flash")
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	ownerValue := ""
 	if viewer != nil && viewer.Role != roleAdmin {

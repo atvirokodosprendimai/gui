@@ -74,7 +74,7 @@ func (a *App) Close() error {
 
 func (a *App) Routes() http.Handler {
 	r := chi.NewRouter()
-	r.Use(securityHeaders)
+	r.Use(a.securityHeaders)
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"ok":true}`))
@@ -138,6 +138,7 @@ type uiUpdate struct {
 	Element   string `json:"el"`
 	UserID    string `json:"user_id,omitempty"`
 	SessionID string `json:"session_id,omitempty"`
+	EmittedAt int64  `json:"emitted_at,omitempty"`
 }
 
 const subjectFEUpdate = "fe.update"

@@ -6,11 +6,14 @@ import (
 	"time"
 )
 
+const maxLoginBodyBytes int64 = 16 << 10
+
 func (a *App) handleLoginPage(w http.ResponseWriter, r *http.Request) {
 	renderTempl(w, r, http.StatusOK, LoginPage(""))
 }
 
 func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxLoginBodyBytes)
 	if err := r.ParseForm(); err != nil {
 		renderTempl(w, r, http.StatusBadRequest, LoginPage("invalid login request"))
 		return
@@ -18,17 +21,20 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.Form.Get("email"))
 	password := r.Form.Get("password")
 	key := a.loginKey(r, email)
-	if !a.allowLogin(key) {
+	ipKey := a.loginIPKey(r)
+	if !a.allowLogin(ipKey) || !a.allowLogin(key) {
 		renderTempl(w, r, http.StatusTooManyRequests, LoginPage("too many attempts, retry later"))
 		return
 	}
 	u, err := a.authenticate(email, password)
 	if err != nil {
 		a.noteLoginFail(key)
+		a.noteLoginFail(ipKey)
 		renderTempl(w, r, http.StatusUnauthorized, LoginPage("invalid credentials"))
 		return
 	}
 	a.noteLoginSuccess(key)
+	a.noteLoginSuccess(ipKey)
 	token, err := a.createSession(u.ID)
 	if err != nil {
 		renderTempl(w, r, http.StatusInternalServerError, LoginPage("session creation failed"))

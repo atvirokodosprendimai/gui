@@ -3,7 +3,9 @@ package dashboard
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	"github.com/nats-io/nats.go"
 )
@@ -50,20 +52,38 @@ func (a *App) ConfigureNATS(url string) error {
 	}
 
 	h := func(m *nats.Msg) {
+		scope, subjectID, ok := scopeAndIDFromSubject(m.Subject)
+		if !ok {
+			log.Printf("dropping nats ui update: invalid subject %q", m.Subject)
+			return
+		}
 		var upd uiUpdate
 		if err := json.Unmarshal(m.Data, &upd); err != nil {
+			log.Printf("dropping nats ui update: decode failed for %q: %v", m.Subject, err)
 			return
 		}
 		if upd.Subject == "" {
 			upd.Subject = subjectFEUpdate
 		}
 		if upd.Scope == "" {
-			upd.Scope = scopeFromSubject(m.Subject)
+			upd.Scope = scope
+		}
+		if upd.Scope == scopeUser && strings.TrimSpace(upd.UserID) == "" {
+			upd.UserID = subjectID
+		}
+		if upd.Scope == scopeSession && strings.TrimSpace(upd.SessionID) == "" {
+			upd.SessionID = subjectID
+		}
+		if !subjectMatchesUpdate(scope, subjectID, upd) {
+			log.Printf("dropping nats ui update: scope/payload mismatch subject=%q payload_scope=%q", m.Subject, upd.Scope)
+			return
 		}
 		if strings.TrimSpace(upd.Element) == "" {
+			log.Printf("dropping nats ui update: empty element subject=%q", m.Subject)
 			return
 		}
 		if !isValidScopedUpdate(upd) {
+			log.Printf("dropping nats ui update: invalid scoped payload subject=%q", m.Subject)
 			return
 		}
 		a.fanoutUpdate(upd)
@@ -98,6 +118,9 @@ func (a *App) emitUpdate(upd uiUpdate) {
 	}
 	if upd.Scope == "" {
 		upd.Scope = scopeGlobal
+	}
+	if upd.EmittedAt == 0 {
+		upd.EmittedAt = time.Now().UTC().UnixMilli()
 	}
 	if !isValidScopedUpdate(upd) {
 		return
@@ -148,6 +171,49 @@ func scopeFromSubject(subject string) string {
 	}
 }
 
+func scopeAndIDFromSubject(subject string) (scope string, id string, ok bool) {
+	switch {
+	case subject == subjectFEUpdateGlobal:
+		return scopeGlobal, "", true
+	case strings.HasPrefix(subject, "fe.update.user."):
+		id = strings.TrimSpace(strings.TrimPrefix(subject, "fe.update.user."))
+		if id == "" || strings.Contains(id, ".") {
+			return "", "", false
+		}
+		return scopeUser, id, true
+	case strings.HasPrefix(subject, "fe.update.session."):
+		id = strings.TrimSpace(strings.TrimPrefix(subject, "fe.update.session."))
+		if id == "" || strings.Contains(id, ".") {
+			return "", "", false
+		}
+		return scopeSession, id, true
+	default:
+		return "", "", false
+	}
+}
+
+func subjectMatchesUpdate(scope string, subjectID string, upd uiUpdate) bool {
+	if upd.Scope != scope {
+		return false
+	}
+	switch scope {
+	case scopeGlobal:
+		return strings.TrimSpace(upd.UserID) == "" && strings.TrimSpace(upd.SessionID) == ""
+	case scopeUser:
+		if strings.TrimSpace(upd.UserID) == "" {
+			return false
+		}
+		return sanitizeSubjectToken(upd.UserID) == subjectID
+	case scopeSession:
+		if strings.TrimSpace(upd.SessionID) == "" {
+			return false
+		}
+		return sanitizeSubjectToken(upd.SessionID) == subjectID
+	default:
+		return false
+	}
+}
+
 func subjectForUpdate(upd uiUpdate) string {
 	switch upd.Scope {
 	case scopeUser:
@@ -180,6 +246,24 @@ func isValidScopedUpdate(upd uiUpdate) bool {
 
 func sanitizeSubjectToken(v string) string {
 	v = strings.TrimSpace(v)
-	v = strings.ReplaceAll(v, ".", "_")
-	return v
+	if v == "" {
+		return ""
+	}
+	b := strings.Builder{}
+	b.Grow(len(v))
+	for _, r := range v {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+		case r >= 'A' && r <= 'Z':
+			b.WriteRune(r)
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+		case r == '-' || r == '_':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('_')
+		}
+	}
+	return strings.Trim(b.String(), "_")
 }

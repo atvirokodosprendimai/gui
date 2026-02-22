@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"time"
 )
+
+const maxTTL = 604800
 
 type dnsRecord struct {
 	ID       int64     `json:"id,omitempty"`
@@ -143,4 +146,44 @@ func nodeID(name, host string, port int) string {
 
 func esc(s string) string {
 	return template.HTMLEscapeString(s)
+}
+
+func validateDNSRecordInput(rec dnsRecord) error {
+	rec = normalizeRecord(rec)
+	if rec.Name == "" {
+		return errors.New("domain is required")
+	}
+	if rec.TTL < 0 || rec.TTL > maxTTL {
+		return fmt.Errorf("ttl must be between 0 and %d", maxTTL)
+	}
+	switch rec.Type {
+	case "A":
+		ip := net.ParseIP(strings.TrimSpace(rec.IP))
+		if ip == nil || ip.To4() == nil {
+			return errors.New("A record requires a valid IPv4 address")
+		}
+	case "AAAA":
+		ip := net.ParseIP(strings.TrimSpace(rec.IP))
+		if ip == nil || ip.To4() != nil {
+			return errors.New("AAAA record requires a valid IPv6 address")
+		}
+	case "TXT":
+		if strings.TrimSpace(rec.Text) == "" {
+			return errors.New("TXT record requires text value")
+		}
+	case "CNAME":
+		if normalizeFQDN(rec.Target) == "" {
+			return errors.New("CNAME record requires target")
+		}
+	case "MX":
+		if normalizeFQDN(rec.Target) == "" {
+			return errors.New("MX record requires target")
+		}
+	default:
+		return errors.New("unsupported record type")
+	}
+	if rec.Zone != "" && normalizeFQDN(rec.Zone) == "" {
+		return errors.New("invalid zone")
+	}
+	return nil
 }

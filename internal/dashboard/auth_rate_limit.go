@@ -14,6 +14,15 @@ type loginState struct {
 }
 
 func (a *App) loginKey(r *http.Request, email string) string {
+	ip := a.clientIP(r)
+	return "acct:" + strings.ToLower(strings.TrimSpace(email)) + "|ip:" + ip
+}
+
+func (a *App) loginIPKey(r *http.Request) string {
+	return "ip:" + a.clientIP(r)
+}
+
+func (a *App) clientIP(r *http.Request) string {
 	ip := ""
 	if a.trustProxy {
 		ip = firstIP(strings.TrimSpace(r.Header.Get("X-Forwarded-For")))
@@ -26,7 +35,7 @@ func (a *App) loginKey(r *http.Request, email string) string {
 			ip = strings.TrimSpace(r.RemoteAddr)
 		}
 	}
-	return strings.ToLower(strings.TrimSpace(email)) + "|" + ip
+	return ip
 }
 
 func firstIP(v string) string {
