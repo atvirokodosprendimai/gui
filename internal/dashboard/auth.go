@@ -165,6 +165,13 @@ func (a *App) userFromRequest(r *http.Request) (*User, error) {
 	return &u, nil
 }
 
+func (a *App) cleanupExpiredSessions() {
+	if a.db == nil {
+		return
+	}
+	_ = a.db.Where("expires_at <= ?", time.Now().UTC()).Delete(&Session{}).Error
+}
+
 func (a *App) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		u, err := a.userFromRequest(r)

@@ -82,6 +82,7 @@ No cgo requirement for SQLite in this setup.
 - `GUI_ADMIN_EMAIL` (optional) - bootstrap admin email (first run)
 - `GUI_ADMIN_PASSWORD` (optional) - bootstrap admin password (first run)
 - `GUI_NATS_URL` (optional) - NATS server URL for distributed CQRS updates
+- `GUI_TRUST_PROXY` (optional, `true|false`) - trust `X-Forwarded-Proto` for secure cookie detection
 
 ## Local Run
 
@@ -124,7 +125,7 @@ Important policy:
 
 - GET `/login`
 - POST `/auth/login`
-- GET `/auth/logout`
+- POST `/auth/logout`
 
 Session is stored server-side in `sessions` table and tracked via `session_token` cookie.
 

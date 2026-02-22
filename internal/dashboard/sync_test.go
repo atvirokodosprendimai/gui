@@ -141,7 +141,7 @@ func TestSyncOnce_ReconcilesDashboardAndServers(t *testing.T) {
 	n1 := newFakeDNSNode(t, tok1, []dnsRecord{{Name: "a.example.com", Type: "A", IP: "198.51.100.1", TTL: 60, Zone: "example.com"}})
 	n2 := newFakeDNSNode(t, tok2, []dnsRecord{{Name: "b.example.com", Type: "A", IP: "198.51.100.2", TTL: 60, Zone: "example.com"}})
 
-	a := New(&http.Client{Timeout: 3 * time.Second}, time.Second)
+	a := New(&http.Client{Timeout: 3 * time.Second}, time.Second, false)
 	a.nodes["n1"] = node{ID: "n1", Name: "n1", URL: n1.server.URL, Port: portFromURL(t, n1.server.URL), Token: tok1}
 	a.nodes["n2"] = node{ID: "n2", Name: "n2", URL: n2.server.URL, Port: portFromURL(t, n2.server.URL), Token: tok2}
 

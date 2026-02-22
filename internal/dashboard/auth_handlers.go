@@ -39,7 +39,7 @@ func (a *App) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   requestIsHTTPS(r),
+		Secure:   a.requestIsHTTPS(r),
 		SameSite: http.SameSiteLaxMode,
 		Expires:  time.Now().UTC().Add(24 * time.Hour),
 	})
@@ -55,16 +55,19 @@ func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   requestIsHTTPS(r),
+		Secure:   a.requestIsHTTPS(r),
 		Expires:  time.Unix(0, 0),
 		MaxAge:   -1,
 	})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
-func requestIsHTTPS(r *http.Request) bool {
+func (a *App) requestIsHTTPS(r *http.Request) bool {
 	if r.TLS != nil {
 		return true
+	}
+	if !a.trustProxy {
+		return false
 	}
 	return strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https")
 }

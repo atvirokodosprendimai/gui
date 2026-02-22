@@ -9,6 +9,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+const maxCommandBodyBytes int64 = 1 << 20
+
+func limitCommandBody(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxCommandBodyBytes)
+}
+
 func (a *App) handleIndex(w http.ResponseWriter, r *http.Request) {
 	u := currentUser(r)
 	renderTempl(w, r, http.StatusOK, IndexPage(u.Email, u.Role))
@@ -21,6 +27,7 @@ func (a *App) handleAddServer(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
+	limitCommandBody(w, r)
 	var sig addServerSignals
 	if err := readDatastarSignals(r, &sig); err != nil {
 		a.setFlash(r, "invalid request payload")
@@ -78,6 +85,7 @@ func (a *App) handleDeleteServer(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
+	limitCommandBody(w, r)
 	var sig parkDomainSignals
 	if err := readDatastarSignals(r, &sig); err != nil {
 		a.setFlash(r, "invalid request payload")
@@ -112,35 +120,32 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 		TTL:    ttl,
 	})
 
+	ownerValue := ""
+	if viewer != nil && viewer.Role != roleAdmin {
+		ownerValue = viewer.Email
+	} else if account != "" {
+		ownerValue = account
+	} else {
+		a.mu.RLock()
+		_, exists := a.domainOwners[normalizeFQDN(rec.Name)]
+		a.mu.RUnlock()
+		if !exists {
+			ownerValue = "unassigned"
+		}
+	}
+	if ownerValue != "" {
+		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), ownerValue); err != nil {
+			a.setFlash(r, "failed to save domain owner")
+			a.notifySessionElements(r, "flash")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
 	a.mu.Lock()
 	a.dashboard[recordKey(rec)] = rec
-	if viewer != nil && viewer.Role != roleAdmin {
-		a.domainOwners[normalizeFQDN(rec.Name)] = viewer.Email
-		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), viewer.Email); err != nil {
-			a.mu.Unlock()
-			a.setFlash(r, "failed to save domain owner")
-			a.notifySessionElements(r, "flash")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	} else if account != "" {
-		a.domainOwners[normalizeFQDN(rec.Name)] = account
-		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), account); err != nil {
-			a.mu.Unlock()
-			a.setFlash(r, "failed to save domain owner")
-			a.notifySessionElements(r, "flash")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-	} else if _, ok := a.domainOwners[normalizeFQDN(rec.Name)]; !ok {
-		a.domainOwners[normalizeFQDN(rec.Name)] = "unassigned"
-		if err := a.saveDomainOwner(normalizeFQDN(rec.Name), "unassigned"); err != nil {
-			a.mu.Unlock()
-			a.setFlash(r, "failed to save domain owner")
-			a.notifySessionElements(r, "flash")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	if ownerValue != "" {
+		a.domainOwners[normalizeFQDN(rec.Name)] = ownerValue
 	}
 	nodes := make([]node, 0, len(a.nodes))
 	for _, n := range a.nodes {
@@ -172,6 +177,7 @@ func (a *App) handleParkDomain(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleTransferDomain(w http.ResponseWriter, r *http.Request) {
+	limitCommandBody(w, r)
 	var sig transferDomainSignals
 	if err := readDatastarSignals(r, &sig); err != nil {
 		a.setFlash(r, "invalid request payload")
@@ -252,6 +258,7 @@ func (a *App) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
+	limitCommandBody(w, r)
 	var sig createUserSignals
 	if err := readDatastarSignals(r, &sig); err != nil {
 		a.setFlash(r, "invalid request payload")

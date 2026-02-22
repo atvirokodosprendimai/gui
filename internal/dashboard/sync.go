@@ -3,6 +3,9 @@ package dashboard
 import "time"
 
 func (a *App) syncOnce() {
+	a.syncMu.Lock()
+	defer a.syncMu.Unlock()
+
 	a.mu.RLock()
 	nodes := make([]node, 0, len(a.nodes))
 	for _, n := range a.nodes {

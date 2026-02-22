@@ -19,6 +19,7 @@ import (
 func main() {
 	addr := envOrDefault("GUI_ADDR", ":8090")
 	dbPath := envOrDefault("GUI_DB", "gui.db")
+	trustProxy := strings.EqualFold(strings.TrimSpace(os.Getenv("GUI_TRUST_PROXY")), "true")
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
@@ -35,7 +36,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	app := dashboard.New(&http.Client{Timeout: 10 * time.Second}, 15*time.Second, db)
+	app := dashboard.New(&http.Client{Timeout: 10 * time.Second}, 15*time.Second, trustProxy, db)
 	if err := app.InitError(); err != nil {
 		log.Fatal(err)
 	}
@@ -60,8 +61,13 @@ func main() {
 	go app.RunSyncLoop(ctx)
 
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: app.Routes(),
+		Addr:              addr,
+		Handler:           app.Routes(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	log.Printf("dashboard listening on %s", addr)

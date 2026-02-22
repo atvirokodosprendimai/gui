@@ -14,6 +14,7 @@ import (
 
 type App struct {
 	mu           sync.RWMutex
+	syncMu       sync.Mutex
 	authMu       sync.Mutex
 	nodes        map[string]node
 	dashboard    map[string]dnsRecord
@@ -22,13 +23,14 @@ type App struct {
 	natsBridge   *natsBridge
 	client       *http.Client
 	db           *gorm.DB
+	trustProxy   bool
 	syncInterval time.Duration
 	flashBySess  map[string]string
 	loginLimiter map[string]loginState
 	initErr      error
 }
 
-func New(client *http.Client, syncInterval time.Duration, dbs ...*gorm.DB) *App {
+func New(client *http.Client, syncInterval time.Duration, trustProxy bool, dbs ...*gorm.DB) *App {
 	if client == nil {
 		client = &http.Client{Timeout: 10 * time.Second}
 	}
@@ -48,6 +50,7 @@ func New(client *http.Client, syncInterval time.Duration, dbs ...*gorm.DB) *App 
 		watchers:     make(map[chan uiUpdate]struct{}),
 		client:       client,
 		db:           db,
+		trustProxy:   trustProxy,
 		syncInterval: syncInterval,
 		flashBySess:  make(map[string]string),
 		loginLimiter: make(map[string]loginState),
@@ -79,7 +82,7 @@ func (a *App) Routes() http.Handler {
 
 	r.Get("/login", a.handleLoginPage)
 	r.Post("/auth/login", a.handleLogin)
-	r.Get("/auth/logout", a.handleLogout)
+	r.Post("/auth/logout", a.handleLogout)
 
 	r.Group(func(pr chi.Router) {
 		pr.Use(a.requireAuth)
@@ -106,6 +109,7 @@ func (a *App) RunSyncLoop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			a.syncOnce()
+			a.cleanupExpiredSessions()
 		}
 	}
 }

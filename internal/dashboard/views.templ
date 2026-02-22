@@ -62,7 +62,7 @@ templ IndexPage(userEmail string, role string) {
 						</div>
 						<div class="flex flex-wrap gap-3">
 							<button class="inline-flex items-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 focus:outline-none focus:ring-4 focus:ring-teal-300" data-on:click="@post('/ui/sync/now')">Sync Now</button>
-							<a class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200" href="/auth/logout">Logout</a>
+							<form method="post" action="/auth/logout"><button class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-4 focus:ring-slate-200" type="submit">Logout</button></form>
 						</div>
 					</div>
 				</div>

@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -13,11 +14,27 @@ type loginState struct {
 }
 
 func loginKey(r *http.Request, email string) string {
-	ip := strings.TrimSpace(r.Header.Get("X-Forwarded-For"))
+	ip := firstIP(strings.TrimSpace(r.Header.Get("X-Forwarded-For")))
 	if ip == "" {
-		ip = r.RemoteAddr
+		host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+		if err == nil {
+			ip = host
+		} else {
+			ip = strings.TrimSpace(r.RemoteAddr)
+		}
 	}
 	return strings.ToLower(strings.TrimSpace(email)) + "|" + ip
+}
+
+func firstIP(v string) string {
+	if v == "" {
+		return ""
+	}
+	parts := strings.Split(v, ",")
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(parts[0])
 }
 
 func (a *App) allowLogin(key string) bool {

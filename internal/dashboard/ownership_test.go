@@ -11,7 +11,7 @@ import (
 func TestFilteredRecordRows_IncludeAccount(t *testing.T) {
 	t.Parallel()
 
-	a := New(nil, 0)
+	a := New(nil, 0, false)
 	a.dashboard[recordKey(dnsRecord{Name: "app.example.com", Type: "A", IP: "198.51.100.10", Zone: "example.com", TTL: 60})] = normalizeRecord(dnsRecord{Name: "app.example.com", Type: "A", IP: "198.51.100.10", Zone: "example.com", TTL: 60})
 	a.domainOwners["app.example.com."] = "account-a"
 
@@ -27,7 +27,7 @@ func TestFilteredRecordRows_IncludeAccount(t *testing.T) {
 func TestHandleTransferDomain(t *testing.T) {
 	t.Parallel()
 
-	a := New(nil, 0)
+	a := New(nil, 0, false)
 	body := `{"transferDomain":"app.example.com","transferToAccount":"account-b"}`
 
 	a.domainOwners["app.example.com."] = "admin@local"

@@ -11,7 +11,7 @@ import (
 func TestHandleCQRSStream_WritesInitialReadModelAndClock(t *testing.T) {
 	t.Parallel()
 
-	a := New(nil, time.Second)
+	a := New(nil, time.Second, false)
 	rec := httptest.NewRecorder()
 
 	ctx, cancel := context.WithCancel(context.Background())
