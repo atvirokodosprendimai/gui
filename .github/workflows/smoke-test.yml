@@ -1,0 +1,85 @@
+name: Smoke Test with Screenshots
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build -o gui ./cmd/gui
+
+      - name: Start application
+        run: |
+          ./gui &
+          echo "APP_PID=$!" >> "$GITHUB_ENV"
+        env:
+          GUI_ADDR: ":8090"
+          GUI_DB: "/tmp/smoke-gui.db"
+          GUI_ADMIN_EMAIL: "admin@smoke.local"
+          GUI_ADMIN_PASSWORD: "smoke-pass-123"
+
+      - name: Wait for app to be ready
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8090/login && exit 0 || sleep 1
+          done
+          echo "ERROR: application did not become ready within 30 seconds" >&2
+          kill "$APP_PID" 2>/dev/null || true
+          exit 1
+
+      - name: Install Playwright and Chromium
+        run: |
+          cd /tmp
+          npm init -y
+          npm install playwright
+          npx playwright install chromium --with-deps
+
+      - name: Take screenshots
+        env:
+          SMOKE_ADMIN_EMAIL: "admin@smoke.local"
+          SMOKE_ADMIN_PASSWORD: "smoke-pass-123"
+        run: |
+          mkdir -p screenshots
+          node - << 'EOF'
+          const { chromium } = require('/tmp/node_modules/playwright');
+          (async () => {
+            const browser = await chromium.launch();
+            const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+            const page = await ctx.newPage();
+
+            // Screenshot: login page
+            await page.goto('http://localhost:8090/login');
+            await page.screenshot({ path: 'screenshots/login.png', fullPage: true });
+
+            // Screenshot: dashboard (after login)
+            await page.fill('[name=email]', process.env.SMOKE_ADMIN_EMAIL);
+            await page.fill('[name=password]', process.env.SMOKE_ADMIN_PASSWORD);
+            await page.click('[type=submit]');
+            await page.waitForURL('http://localhost:8090/**', { timeout: 5000 });
+            await page.screenshot({ path: 'screenshots/dashboard.png', fullPage: true });
+
+            await browser.close();
+          })().catch(e => { console.error(e); process.exit(1); });
+          EOF
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshots
+          path: screenshots/
+          if-no-files-found: error
